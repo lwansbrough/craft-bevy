@@ -21,6 +21,8 @@ pub fn command_accumulator_system(
         }
     };
 
+    frame_command.frame = 5;
+
     frame_command.forward = input.pressed(KeyCode::W);
     frame_command.backward = input.pressed(KeyCode::S);
     frame_command.right = input.pressed(KeyCode::D);

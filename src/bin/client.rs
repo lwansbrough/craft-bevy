@@ -1,16 +1,19 @@
-mod components;
-mod models;
-mod systems;
-mod utilities;
-
 use bevy::prelude::*;
-use crate::components::*;
-use crate::systems::*;
+use bevy_rapier3d::physics::{RapierPhysicsPlugin, RigidBodyHandleComponent};
+use bevy_rapier3d::rapier::dynamics::{BodyStatus, RigidBody, RigidBodyBuilder};
+use bevy_rapier3d::rapier::geometry::ColliderBuilder;
+use bevy_prototype_networking_laminar::{NetworkResource, NetworkingPlugin};
+
+use craft::components::*;
+use craft::models::*;
+use craft::systems::*;
 
 fn main() {
     App::build()
         .add_resource(Msaa { samples: 4 })
         .add_default_plugins()
+        .add_plugin(RapierPhysicsPlugin)
+        .add_plugin(NetworkingPlugin)
         .init_resource::<CommandAccumulatorState>()
         .init_resource::<LocalPlayerCameraState>()
         .init_resource::<LocalPlayerMovementState>()
@@ -18,15 +21,20 @@ fn main() {
         .add_system(command_accumulator_system.system())
         .add_system(local_player_camera_system.system())
         .add_system(local_player_movement_system.system())
+        .add_system(client_prediction::<RigidBodyHandleComponent>.system())
         .run();
 }
+
 
 /// set up a simple 3D scene
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut net: ResMut<NetworkResource>
 ) {
+    net.bind("127.0.0.1:12350").unwrap();
+
     // add entities to the world
     commands
         // plane
@@ -35,13 +43,16 @@ fn setup(
             material: materials.add(Color::rgb(0.1, 0.2, 0.1).into()),
             ..Default::default()
         })
+        .with(RigidBodyBuilder::new(BodyStatus::Static))
+        .with(ColliderBuilder::cuboid(10.0, 0.0, 10.0))
         // cube
         .spawn(PbrComponents {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             material: materials.add(Color::rgb(0.5, 0.4, 0.3).into()),
-            translation: Translation::new(0.0, 1.0, 0.0),
             ..Default::default()
         })
+        .with(RigidBodyBuilder::new(BodyStatus::Static).translation(0.0, 1.0, 0.0))
+        .with(ColliderBuilder::cuboid(1.0, 1.0, 1.0))
         // light
         .spawn(LightComponents {
             translation: Translation::new(4.0, 8.0, 4.0),
@@ -61,7 +72,6 @@ fn setup(
         .spawn(PbrComponents {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             material: materials.add(Color::rgb(1.0, 0.0, 0.0).into()),
-            translation: Translation::new(5.0, 1.0, 5.0),
             ..Default::default()
         })
         .with(LocalPlayer)
@@ -82,5 +92,8 @@ fn setup(
                 //     ..Default::default()
                 // });
             });
-        });
+        })
+        .with(RigidBodyBuilder::new(BodyStatus::Dynamic).translation(5.0, 2.0, 5.0))
+        .with(ColliderBuilder::cuboid(1.0, 1.0, 1.0))
+        .with(Synchronizable::<RigidBodyHandleComponent>::default());
 }
