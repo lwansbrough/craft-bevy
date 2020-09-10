@@ -10,6 +10,7 @@ use crate::resources::*;
 
 /// This system prints out all mouse events as they come in
 pub fn client_prediction_system<TComponent: 'static + Send + Sync>(
+    ci: Res<ConnectionInfo>,
     sim_time: Res<SimulationTime>,
     net: Res<NetworkResource>,
     mut synchronizable_entity_query: Query<(Entity, &mut Synchronizable<TComponent>)>,
@@ -21,13 +22,13 @@ pub fn client_prediction_system<TComponent: 'static + Send + Sync>(
         if let Some(command_frame) = command_frame {
             let frame: u32 = command_frame.frame;
 
-            let command_frame_mssage = NetMessage::CommandFrame(command_frame);
+            let command_frame_message = NetMessage::CommandFrame(*command_frame);
 
-            let bytes: Vec<u8> = bincode::serialize(&command_frame_mssage).unwrap();
+            let bytes: Vec<u8> = bincode::serialize(&command_frame_message).unwrap();
             println!("Entity {} sending message for sim frame {}. Data: {:?}", entity.id(), frame, &bytes);
             
-            let server: SocketAddr = "127.0.0.1:12350".parse().expect("Not a valid address");
-            net.send(server, &bytes, NetworkDelivery::UnreliableUnordered);
+
+            net.send(*ci.server_addr(), &bytes, NetworkDelivery::UnreliableUnordered);
         }
     }
 }

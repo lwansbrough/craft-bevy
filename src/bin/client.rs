@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use bevy::prelude::*;
 use bevy_rapier3d::physics::{RapierPhysicsPlugin, RigidBodyHandleComponent};
 use bevy_rapier3d::rapier::dynamics::{BodyStatus, RigidBody, RigidBodyBuilder};
@@ -11,12 +13,23 @@ use craft::resources::*;
 use craft::systems::*;
 
 fn main() {
+    let client_addr: SocketAddr = "127.0.0.1:12351".parse().expect("The socket address wasn't a valid format");
+    let server_addr: SocketAddr = "127.0.0.1:12350".parse().expect("The socket address wasn't a valid format");
+
+    let client = ConnectionInfo::Client {
+        id: 123u128,
+        addr: client_addr,
+        server: server_addr
+    };
+
     App::build()
         .add_resource(Msaa { samples: 4 })
         .add_default_plugins()
         .add_plugin(RapierPhysicsPlugin)
         .add_plugin(NetworkingPlugin)
+        .add_event::<CommandFrameEvent>()
         .add_event::<StateFrameEvent>()
+        .add_resource(client)
         .add_resource(SimulationTime::new(60))
         .init_resource::<NetworkEventState>()
         .init_resource::<Clients>()
@@ -30,6 +43,7 @@ fn main() {
         .add_system(local_player_camera_system.system())
         .add_system(local_player_movement_system.system())
         .add_system(player_movement_system.system())
+        .add_system(network_message_listener_system.system())
         .add_system(client_prediction_system::<RigidBodyHandleComponent>.system())
         .run();
 }
@@ -40,8 +54,11 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut net: ResMut<NetworkResource>
+    mut net: ResMut<NetworkResource>,
+    ci: Res<ConnectionInfo>
 ) {
+    net.bind(ci.addr()).expect("We failed to bind to the socket.");
+
     // add entities to the world
     commands
         // plane

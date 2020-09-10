@@ -1,7 +1,6 @@
 use crate::models::*;
 
-#[derive(Debug)]
 pub struct CommandFrameEvent {
-    from: u128,
-    command_frame: CommandFrame,
+    pub from: u128,
+    pub command_frame: CommandFrame,
 }

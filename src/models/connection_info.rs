@@ -25,4 +25,18 @@ impl ConnectionInfo {
             _ => false,
         }
     }
+
+    pub fn addr(&self) -> &SocketAddr {
+        match &self {
+            ConnectionInfo::Client { addr, .. } => addr,
+            ConnectionInfo::Server { addr } => addr
+        }
+    }
+
+    pub fn server_addr(&self) -> &SocketAddr {
+        match &self {
+            ConnectionInfo::Client { server, .. } => server,
+            ConnectionInfo::Server { addr } => addr
+        }
+    }
 }

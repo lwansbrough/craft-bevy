@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use crate::models::*;
 
 /// A discrete representation of a client's input at a moment in time
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum SynchronizedInput {
     InputCommand(InputCommand),
     None
