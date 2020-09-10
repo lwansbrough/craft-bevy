@@ -5,7 +5,9 @@ use bevy_rapier3d::rapier::geometry::ColliderBuilder;
 use bevy_prototype_networking_laminar::{NetworkResource, NetworkingPlugin};
 
 use craft::components::*;
+use craft::events::*;
 use craft::models::*;
+use craft::resources::*;
 use craft::systems::*;
 
 fn main() {
@@ -14,14 +16,21 @@ fn main() {
         .add_default_plugins()
         .add_plugin(RapierPhysicsPlugin)
         .add_plugin(NetworkingPlugin)
+        .add_event::<StateFrameEvent>()
+        .add_resource(SimulationTime::new(60))
+        .init_resource::<NetworkEventState>()
+        .init_resource::<Clients>()
         .init_resource::<CommandAccumulatorState>()
         .init_resource::<LocalPlayerCameraState>()
         .init_resource::<LocalPlayerMovementState>()
+        .init_resource::<PlayerMovementState>()
         .add_startup_system(setup.system())
+        .add_system(simulation_time_system.system())
         .add_system(command_accumulator_system.system())
         .add_system(local_player_camera_system.system())
         .add_system(local_player_movement_system.system())
-        .add_system(client_prediction::<RigidBodyHandleComponent>.system())
+        .add_system(player_movement_system.system())
+        .add_system(client_prediction_system::<RigidBodyHandleComponent>.system())
         .run();
 }
 
@@ -33,8 +42,6 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut net: ResMut<NetworkResource>
 ) {
-    net.bind("127.0.0.1:12350").unwrap();
-
     // add entities to the world
     commands
         // plane

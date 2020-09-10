@@ -10,7 +10,7 @@ use crate::resources::*;
 use crate::systems::CommandAccumulatorState;
 
 #[derive(Default)]
-pub struct LocalPlayerMovementState {
+pub struct ServerPlayerMovementState {
 }
 
 fn predict(local_player_movement: &ResMut<LocalPlayerMovementState>, sim_time: &SimulationTime, entity: Entity, input_command: &InputCommand, mut rigid_body: RigidBodyMut, synchronizable_rigid_body: &mut Synchronizable<RigidBodyHandleComponent>) {
@@ -21,7 +21,7 @@ fn predict(local_player_movement: &ResMut<LocalPlayerMovementState>, sim_time: &
     );
 }
 
-pub fn local_player_movement_system(
+pub fn server_player_movement_system(
     mut state: ResMut<LocalPlayerMovementState>,
     sim_time: Res<SimulationTime>,
     command_accumulator: Res<CommandAccumulatorState>,
