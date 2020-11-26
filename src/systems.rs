@@ -4,6 +4,10 @@ mod local_player_movement;
 mod player_movement;
 mod client_prediction;
 mod network_message_listener;
+mod server_player_movement;
+mod chunk_loading_system;
+mod server_state_authoring;
+mod server_entity_spawning;
 
 pub use self::{
     command_accumulator::*,
@@ -11,5 +15,9 @@ pub use self::{
     local_player_movement::*,
     player_movement::*,
     client_prediction::*,
-    network_message_listener::*
+    network_message_listener::*,
+    server_player_movement::*,
+    chunk_loading_system::*,
+    server_state_authoring::*,
+    server_entity_spawning::*
 };

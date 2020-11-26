@@ -4,6 +4,7 @@ mod command_frame;
 mod command_frame_buffer;
 mod state_frame;
 mod state_frame_buffer;
+mod entity_spawn;
 mod synchronized_input;
 mod synchronized_state;
 mod net_client;
@@ -17,6 +18,7 @@ pub use self::{
     command_frame_buffer::*,
     state_frame::*,
     state_frame_buffer::*,
+    entity_spawn::*,
     synchronized_input::*,
     synchronized_state::*,
     net_client::*,

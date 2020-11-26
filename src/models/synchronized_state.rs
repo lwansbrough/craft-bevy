@@ -3,7 +3,7 @@ use crate::models::*;
 use bevy_rapier3d::rapier::dynamics::{RigidBody};
 
 /// A discrete representation of a component's state at a moment in time
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum SynchronizedState {
     None,
     RigidBody(RigidBody)

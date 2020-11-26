@@ -8,7 +8,8 @@ pub enum NetMessage {
     Error(String, String),
     Authorize(String),
     CommandFrame(CommandFrame),
-    AuthoritativeStateFrame(StateFrame)
+    AuthoritativeStateFrame(StateFrame),
+    EntitySpawn(EntitySpawn)
 }
 
 impl Default for NetMessage {

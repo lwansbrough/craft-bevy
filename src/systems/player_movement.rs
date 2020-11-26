@@ -56,7 +56,7 @@ pub fn player_movement_system(
     mut rigid_body_set: ResMut<RigidBodySet>,
     mut player_body_query: Query<(Entity, &LocalPlayerBody, &RigidBodyHandleComponent, &mut Synchronizable<RigidBodyHandleComponent>)>
 ) {
-    for (entity, _player_body, rigid_body_handle, mut synchronizable_rigid_body) in &mut player_body_query.iter() {
+    for (entity, _player_body, rigid_body_handle, mut synchronizable_rigid_body) in player_body_query.iter_mut() {
         let mut rigid_body = rigid_body_set.get_mut(rigid_body_handle.handle()).unwrap();
         move_player(&state, &sim_time, entity, rigid_body, &mut synchronizable_rigid_body);
     }

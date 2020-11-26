@@ -17,17 +17,21 @@ fn main() {
     let server = ConnectionInfo::Server { addr };
 
     App::build()
-        .add_default_plugins()
+        .add_plugins(DefaultPlugins)
         .add_plugin(RapierPhysicsPlugin)
         .add_plugin(NetworkingPlugin)
         .add_event::<CommandFrameEvent>()
         .add_event::<StateFrameEvent>()
+        .add_event::<EntitySpawnEvent>()
         .add_resource(server)
         .add_resource(SimulationTime::new(60))
-        .init_resource::<NetworkEventState>()
+        .init_resource::<NetworkEventListenerState>()
         .init_resource::<Clients>()
         .add_startup_system(setup.system())
         .add_system(network_message_listener_system.system())
+        .add_system(server_player_movement_system.system())
+        .add_system(server_entity_spawning.system())
+        .add_system(server_state_authoring_system::<RigidBodyHandleComponent>.system())
         .run();
 }
 

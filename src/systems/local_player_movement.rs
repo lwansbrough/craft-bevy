@@ -31,7 +31,7 @@ pub fn local_player_movement_system(
 ) {
     let latest_input_command = *command_accumulator.input_buffer.inputs.back().unwrap_or(&InputCommand::default());
 
-    for (entity, _player_body, rigid_body_handle, mut synchronizable_rigid_body) in &mut player_body_query.iter() {
+    for (entity, _player_body, rigid_body_handle, mut synchronizable_rigid_body) in &mut player_body_query.iter_mut() {
         let mut rigid_body = rigid_body_set.get_mut(rigid_body_handle.handle()).unwrap();
         predict(&state, &sim_time, entity, &latest_input_command, rigid_body, &mut synchronizable_rigid_body);
     }

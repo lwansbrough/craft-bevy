@@ -1,38 +1,33 @@
-use bevy::{
-    prelude::*,
-};
-use bevy_rapier3d::rapier::dynamics::{RigidBody, RigidBodyMut, RigidBodySet};
-use bevy_rapier3d::rapier::math::{Vector};
+use bevy::prelude::*;
 use bevy_rapier3d::physics::{RigidBodyHandleComponent};
 use crate::components::*;
+use crate::events::*;
 use crate::models::*;
 use crate::resources::*;
-use crate::systems::CommandAccumulatorState;
-
-#[derive(Default)]
-pub struct ServerPlayerMovementState {
-}
-
-fn predict(local_player_movement: &ResMut<LocalPlayerMovementState>, sim_time: &SimulationTime, entity: Entity, input_command: &InputCommand, mut rigid_body: RigidBodyMut, synchronizable_rigid_body: &mut Synchronizable<RigidBodyHandleComponent>) {
-    synchronizable_rigid_body.command_frames().push(
-        entity.id(),
-        sim_time.frame(),
-        SynchronizedInput::InputCommand(*input_command)
-    );
-}
 
 pub fn server_player_movement_system(
-    mut state: ResMut<LocalPlayerMovementState>,
-    sim_time: Res<SimulationTime>,
-    command_accumulator: Res<CommandAccumulatorState>,
-    input: Res<Input<KeyCode>>,
-    mut rigid_body_set: ResMut<RigidBodySet>,
-    mut player_body_query: Query<(Entity, &LocalPlayerBody, &RigidBodyHandleComponent, &mut Synchronizable<RigidBodyHandleComponent>)>
+    mut state: ResMut<NetworkEventListenerState>,
+    command_frame_events: Res<Events<CommandFrameEvent>>,
+    mut query: Query<(Entity, &LocalPlayer, &mut Synchronizable::<RigidBodyHandleComponent>)>
 ) {
-    let latest_input_command = *command_accumulator.input_buffer.inputs.back().unwrap_or(&InputCommand::default());
+    for event in state.command_frame_events.iter(&command_frame_events) {
 
-    for (entity, _player_body, rigid_body_handle, mut synchronizable_rigid_body) in &mut player_body_query.iter() {
-        let mut rigid_body = rigid_body_set.get_mut(rigid_body_handle.handle()).unwrap();
-        predict(&state, &sim_time, entity, &latest_input_command, rigid_body, &mut synchronizable_rigid_body);
+        // If the command frame is for an input command then we're in control of it, proceed
+        if let SynchronizedInput::InputCommand(_) = event.command_frame.input {
+            for (entity, _, mut synchronizable_rigid_body) in query.iter_mut() {
+                if entity.id() != event.command_frame.entity_id {
+                    continue;
+                }
+
+                synchronizable_rigid_body.command_frames().push(
+                    event.command_frame.entity_id,
+                    event.command_frame.frame,
+                    event.command_frame.input
+                );
+
+                // No more entities by the same ID (hopefully?!)
+                break
+            }
+        }
     }
 }

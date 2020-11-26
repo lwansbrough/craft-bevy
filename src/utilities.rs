@@ -1,5 +1,7 @@
 mod euler;
+mod gradient;
 
 pub use self::{
-    euler::*
+    euler::*,
+    gradient::*
 };
