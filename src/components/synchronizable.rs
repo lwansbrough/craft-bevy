@@ -3,6 +3,8 @@ use std::marker::{PhantomData};
 
 use crate::models::*;
 
+pub struct Synchronize;
+
 pub struct Synchronizable<TComponent> {
     command_frame_buffer: CommandFrameBuffer,
     state_frame_buffer: StateFrameBuffer,

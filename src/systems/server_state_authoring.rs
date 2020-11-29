@@ -13,10 +13,10 @@ pub fn server_state_authoring_system<TComponent: 'static + Send + Sync>(
     clients: Res<Clients>,
     sim_time: Res<SimulationTime>,
     net: Res<NetworkResource>,
-    mut synchronizable_entity_query: Query<(&Entity, &mut Synchronizable<TComponent>)>,
+    mut synchronizable_entity_query: Query<(&Entity, &mut Synchronizable<TComponent>, Changed<Synchronizable<TComponent>>)>,
 ) {
-    for (entity, mut synchronizable) in &mut synchronizable_entity_query.iter_mut() {
-        let mut state_frames = synchronizable.state_frames();
+    for (entity, mut synchronizable, _) in &mut synchronizable_entity_query.iter_mut() {
+        let state_frames = synchronizable.state_frames();
         let state_frame = state_frames.history_iter(1).next();
 
         if let Some(state_frame) = state_frame {

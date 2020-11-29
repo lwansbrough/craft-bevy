@@ -80,9 +80,11 @@ fn handle_authorization(
     // TODO: check auth token
     let user_device_id = 123u128;
 
+    println!("Client authorized with token {}", token);
+
     clients.add(conn, Client::new(user_device_id, conn));
 
-    commands.spawn((LocalPlayer, LocalPlayerBody, AwaitingSpawn));
+    commands.spawn((Synchronize, LocalPlayer, LocalPlayerBody));
 }
 
 fn handle_command_frame_event(

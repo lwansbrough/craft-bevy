@@ -1,9 +1,9 @@
 use std::net::SocketAddr;
+use std::time::Duration;
 
 use bevy::prelude::*;
+use bevy::app::{ScheduleRunnerSettings};
 use bevy_rapier3d::physics::{RapierPhysicsPlugin, RigidBodyHandleComponent};
-use bevy_rapier3d::rapier::dynamics::{BodyStatus, RigidBody, RigidBodyBuilder};
-use bevy_rapier3d::rapier::geometry::ColliderBuilder;
 use bevy_prototype_networking_laminar::{NetworkResource, NetworkingPlugin};
 
 use craft::components::*;
@@ -17,7 +17,10 @@ fn main() {
     let server = ConnectionInfo::Server { addr };
 
     App::build()
-        .add_plugins(DefaultPlugins)
+        .add_resource(ScheduleRunnerSettings::run_loop(Duration::from_secs_f64(
+            1.0 / 60.0,
+        )))
+        .add_plugins(MinimalPlugins)
         .add_plugin(RapierPhysicsPlugin)
         .add_plugin(NetworkingPlugin)
         .add_event::<CommandFrameEvent>()
@@ -30,7 +33,8 @@ fn main() {
         .add_startup_system(setup.system())
         .add_system(network_message_listener_system.system())
         .add_system(server_player_movement_system.system())
-        .add_system(server_entity_spawning.system())
+        .add_system(server_entity_spawning_for_connected_clients.system())
+        .add_system(server_entity_spawning_for_new_clients.system())
         .add_system(server_state_authoring_system::<RigidBodyHandleComponent>.system())
         .run();
 }
@@ -38,7 +42,6 @@ fn main() {
 /// set up a simple 3D scene
 fn setup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
     mut net: ResMut<NetworkResource>,
     ci: Res<ConnectionInfo>
 ) {

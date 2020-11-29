@@ -1,6 +1,8 @@
 use std::net::SocketAddr;
+use std::time::Duration;
 
 use bevy::prelude::*;
+use bevy::app::{ScheduleRunnerSettings};
 use bevy_rapier3d::physics::{RapierPhysicsPlugin, RigidBodyHandleComponent};
 use bevy_rapier3d::rapier::dynamics::{BodyStatus, RigidBody, RigidBodyBuilder};
 use bevy_rapier3d::rapier::geometry::ColliderBuilder;
@@ -24,6 +26,9 @@ fn main() {
     };
 
     App::build()
+        .add_resource(ScheduleRunnerSettings::run_loop(Duration::from_secs_f64(
+            1.0 / 60.0,
+        )))
         .add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
         .add_plugin(RapierPhysicsPlugin)
