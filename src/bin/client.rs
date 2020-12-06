@@ -6,7 +6,7 @@ use bevy::app::{ScheduleRunnerSettings};
 use bevy_rapier3d::physics::{RapierPhysicsPlugin, RigidBodyHandleComponent};
 use bevy_rapier3d::rapier::dynamics::{BodyStatus, RigidBody, RigidBodyBuilder};
 use bevy_rapier3d::rapier::geometry::ColliderBuilder;
-use bevy_prototype_networking_laminar::{NetworkResource, NetworkingPlugin};
+use bevy_prototype_networking_laminar::{NetworkResource, NetworkingPlugin, NetworkDelivery};
 use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
 
 use craft::components::*;
@@ -68,6 +68,11 @@ fn setup(
     ci: Res<ConnectionInfo>
 ) {
     net.bind(ci.addr()).expect("We failed to bind to the socket.");
+    net.send(
+        *ci.server_addr(),
+        &bincode::serialize(&NetMessage::None).unwrap(),
+        NetworkDelivery::UnreliableUnordered
+    );
 
     // add entities to the world
     commands

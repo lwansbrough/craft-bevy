@@ -31,11 +31,11 @@ fn main() {
         .init_resource::<NetworkEventListenerState>()
         .init_resource::<Clients>()
         .add_startup_system(setup.system())
-        .add_system(network_message_listener_system.system())
-        .add_system(server_player_movement_system.system())
-        .add_system(server_entity_spawning_for_connected_clients.system())
-        .add_system(server_entity_spawning_for_new_clients.system())
-        .add_system(server_state_authoring_system::<RigidBodyHandleComponent>.system())
+        .add_system_to_stage(stage::PRE_UPDATE, network_message_listener_system.system())
+        .add_system_to_stage(stage::PRE_UPDATE, server_player_movement_system.system())
+        .add_system_to_stage(stage::POST_UPDATE, server_entity_spawning_for_connected_clients.system())
+        .add_system_to_stage(stage::POST_UPDATE, server_entity_spawning_for_new_clients.system())
+        .add_system_to_stage(stage::POST_UPDATE, server_state_authoring_system::<RigidBodyHandleComponent>.system())
         .run();
 }
 

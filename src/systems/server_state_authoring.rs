@@ -13,7 +13,7 @@ pub fn server_state_authoring_system<TComponent: 'static + Send + Sync>(
     clients: Res<Clients>,
     sim_time: Res<SimulationTime>,
     net: Res<NetworkResource>,
-    mut synchronizable_entity_query: Query<(&Entity, &mut Synchronizable<TComponent>, Changed<Synchronizable<TComponent>>)>,
+    mut synchronizable_entity_query: Query<(Entity, &mut Synchronizable<TComponent>, Changed<Synchronizable<TComponent>>)>,
 ) {
     for (entity, mut synchronizable, _) in &mut synchronizable_entity_query.iter_mut() {
         let state_frames = synchronizable.state_frames();

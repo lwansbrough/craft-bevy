@@ -32,6 +32,14 @@ pub fn network_message_listener_system/*<TComponent: 'static + Send + Sync>*/(
                         NetworkDelivery::ReliableOrdered(Some(2))
                     );
                 }
+
+                if ci.is_server() {
+                    net.send(
+                        conn.addr,
+                        &bincode::serialize(&NetMessage::None).unwrap(),
+                        NetworkDelivery::UnreliableUnordered
+                    );
+                }
             },
             NetworkEvent::Message(conn, msg) => {
                 let msg = bincode::deserialize::<NetMessage>(&msg[..]).unwrap();
@@ -137,8 +145,6 @@ fn handle_entity_spawn_event(
     if !ci.is_client() {
         return;
     }
-
-    println!("Received entity from server: {}", spawn.entity_id);
 
     entity_spawn_events.send(EntitySpawnEvent {
         spawn
