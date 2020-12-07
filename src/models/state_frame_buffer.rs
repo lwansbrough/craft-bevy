@@ -41,17 +41,9 @@ impl StateFrameBuffer {
 
     pub fn push(
         &mut self,
-        entity_id: u32,
-        frame: u32,
-        state: SynchronizedState
+        state_frame: StateFrame
     ) {
-        let state_frame = StateFrame {
-            entity_id,
-            frame,
-            state
-        };
-
-        self.latest_frame = frame;
+        self.latest_frame = state_frame.frame;
 
         if self.earliest_frame == 0 {
             self.earliest_frame = self.latest_frame

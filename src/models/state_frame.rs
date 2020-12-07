@@ -6,5 +6,6 @@ use crate::models::*;
 pub struct StateFrame {
     pub frame: u32,
     pub entity_id: u32,
-    pub state: SynchronizedState
+    pub component_type_id: i8,
+    pub state: 
 }
