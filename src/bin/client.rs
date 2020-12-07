@@ -126,5 +126,6 @@ fn setup(
         })
         .with(RigidBodyBuilder::new(BodyStatus::Dynamic).translation(5.0, 2.0, 5.0))
         .with(ColliderBuilder::cuboid(1.0, 1.0, 1.0))
-        .with(Synchronizable::<RigidBodyHandleComponent>::default());
+        .with(Synchronizable::<RigidBodyHandleComponent>::default())
+        .with(Synchronized::new::<RigidBodyHandleComponent>(1));
 }
