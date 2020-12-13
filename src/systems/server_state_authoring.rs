@@ -10,14 +10,16 @@ use crate::resources::*;
 
 /// This system sends the latest authoritative state from synchronizable components to clients
 pub fn server_state_authoring_system(
-    world: &World,
+    resources: &Resources,
     clients: Res<Clients>,
     sim_time: Res<SimulationTime>,
     net: Res<NetworkResource>,
-    mut synchronizable_entity_query: Query<(Entity, &mut Synchronized)>,
+    world: &World,
+    mut synchronizable_entity_query: Query<(Entity, &mut Synchronized)>
 ) {
     for (entity, mut synchronized) in &mut synchronizable_entity_query.iter_mut() {
-        let state_frame = synchronized.author_state(world, entity);
+        
+        let state_frame = synchronized.state_frames().history_iter(1).next();
 
         if let Some(state_frame) = state_frame {
             let frame: u32 = state_frame.frame;
@@ -28,7 +30,7 @@ pub fn server_state_authoring_system(
             println!("Entity {} sending authoratative state for sim frame {}. Data: {:?}", entity.id(), frame, &bytes);
             
             for client in clients.iter() {
-                net.send(client.connection().addr, &bytes, NetworkDelivery::UnreliableUnordered);
+                net.send(client.connection().addr, &bytes, NetworkDelivery::UnreliableUnordered).unwrap();
             }
         }
     }

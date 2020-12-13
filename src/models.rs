@@ -10,6 +10,7 @@ mod synchronized_state;
 mod net_client;
 mod net_message;
 mod connection_info;
+pub mod synchronizable;
 
 pub use self::{
     input_command_buffer::*,
@@ -23,5 +24,6 @@ pub use self::{
     synchronized_state::*,
     net_client::*,
     net_message::*,
-    connection_info::*
+    connection_info::*,
+    synchronizable::*
 };

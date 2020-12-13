@@ -1,3 +1,5 @@
+#![feature(fn_traits)]
+
 pub mod components;
 pub mod events;
 pub mod models;

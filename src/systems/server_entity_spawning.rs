@@ -13,7 +13,7 @@ pub fn server_entity_spawning_for_connected_clients(
     mut commands: Commands,
     clients: Res<Clients>,
     net: Res<NetworkResource>,
-    added_synchronizable_entities: Query<(Entity, Added<Synchronize>)>,
+    added_synchronizable_entities: Query<(Entity, Added<Synchronized>)>,
 ) {
     for (entity, _) in added_synchronizable_entities.iter() {
         println!("Server spawning entity {}", entity.id());
@@ -35,7 +35,7 @@ pub fn server_entity_spawning_for_new_clients(
     mut commands: Commands,
     changed_clients: ChangedRes<Clients>,
     net: Res<NetworkResource>,
-    synchronizable_entities: Query<(Entity, &Synchronize)>,
+    synchronizable_entities: Query<(Entity, &Synchronized)>,
 ) {
     for (entity, _) in synchronizable_entities.iter() {
         println!("Server synchronizing entity {}", entity.id());

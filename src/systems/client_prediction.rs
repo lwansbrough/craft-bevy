@@ -13,10 +13,10 @@ pub fn client_prediction_system<TComponent: 'static + Send + Sync>(
     ci: Res<ConnectionInfo>,
     sim_time: Res<SimulationTime>,
     net: Res<NetworkResource>,
-    mut synchronizable_entity_query: Query<(&ServerEntity, &mut Synchronizable<TComponent>)>,
+    mut synchronizable_entity_query: Query<(&ServerEntity, &mut Synchronized)>,
 ) {
-    for (server_entity, mut synchronizable) in &mut synchronizable_entity_query.iter_mut() {
-        let mut command_frames = synchronizable.command_frames();
+    for (server_entity, mut synchronized) in &mut synchronizable_entity_query.iter_mut() {
+        let mut command_frames = synchronized.command_frames();
         let command_frame = command_frames.history_iter(3).next();
 
         if let Some(command_frame) = command_frame {

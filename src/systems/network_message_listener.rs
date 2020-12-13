@@ -3,6 +3,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_prototype_networking_laminar::{Connection, NetworkResource, NetworkDelivery, NetworkEvent};
+use bevy_rapier3d::{rapier::dynamics::RigidBody, physics::RigidBodyHandleComponent};
 use serde::{Serialize};
 use crate::components::*;
 use crate::events::*;
@@ -92,7 +93,7 @@ fn handle_authorization(
 
     clients.add(conn, Client::new(user_device_id, conn));
 
-    commands.spawn((Synchronize, LocalPlayer, LocalPlayerBody));
+    commands.spawn((Synchronized::new::<RigidBodyHandleComponent>(1), LocalPlayer, LocalPlayerBody));
 }
 
 fn handle_command_frame_event(
