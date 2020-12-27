@@ -39,13 +39,14 @@ fn setup(
         // TODO: Why do I need this in order for the quad to render?
         .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Plane { size: 10.0 })),
-            material: materials_standard.add(Color::rgb(0.1, 0.2, 0.1).into()),
+            material: materials_standard.add(Color::rgb(1.0, 0.0, 0.0).into()),
             ..Default::default()
         })
         // Fullscreen quad
         .spawn(VoxelBundle {
             mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(2.0, 2.0)))),
-            material: materials_voxel.add(VoxelMaterial {}),
+            // mesh: meshes.add(Mesh::from(shape::Cube { size: 5.0 })),
+            material: materials_voxel.add(VoxelMaterial::default()),
             ..Default::default()
         })
         .spawn(Camera3dBundle {

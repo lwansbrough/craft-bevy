@@ -58,11 +58,11 @@ pub struct TimeNodeState {
 pub fn time_node_system(
     mut state: Local<TimeNodeState>,
     render_resource_context: Res<Box<dyn RenderResourceContext>>,
-    // PERF: this write on RenderResourceAssignments will prevent this system from running in parallel
-    // with other systems that do the same
+    // TODO: this write on RenderResourceBindings will prevent this system from running in parallel with other systems that do the same
     mut render_resource_bindings: ResMut<RenderResourceBindings>,
     time: Res<Time>,
 ) {
+    let state = &mut state;
     let render_resource_context = &**render_resource_context;
 
     let staging_buffer = if let Some(staging_buffer) = state.staging_buffer {
@@ -76,7 +76,7 @@ pub fn time_node_system(
             ..Default::default()
         });
         render_resource_bindings.set(
-            "Time",
+            super::super::uniform::TIME,
             RenderResourceBinding::Buffer {
                 buffer,
                 range: 0..size as u64,
