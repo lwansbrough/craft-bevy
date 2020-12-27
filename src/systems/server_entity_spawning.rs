@@ -10,12 +10,12 @@ use crate::resources::*;
 
 /// This system sends information about newly spawned synchronizable entities to already connected clients
 pub fn server_entity_spawning_for_connected_clients(
-    mut commands: Commands,
+    commands: &mut Commands,
     clients: Res<Clients>,
     net: Res<NetworkResource>,
-    added_synchronizable_entities: Query<(Entity, Added<Synchronize>)>,
+    added_synchronizable_entities: Query<(Entity), Added<Synchronize>>,
 ) {
-    for (entity, _) in added_synchronizable_entities.iter() {
+    for (entity) in added_synchronizable_entities.iter() {
         println!("Server spawning entity {}", entity.id());
 
         for client in clients.iter() {
@@ -32,7 +32,7 @@ pub fn server_entity_spawning_for_connected_clients(
 
 /// This system sends information about existing synchronizable entities to newly connected clients
 pub fn server_entity_spawning_for_new_clients(
-    mut commands: Commands,
+    commands: &mut Commands,
     changed_clients: ChangedRes<Clients>,
     net: Res<NetworkResource>,
     synchronizable_entities: Query<(Entity, &Synchronize)>,

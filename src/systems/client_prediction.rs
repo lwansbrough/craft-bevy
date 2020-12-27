@@ -9,11 +9,11 @@ use crate::models::*;
 use crate::resources::*;
 
 /// This system prints out all mouse events as they come in
-pub fn client_prediction_system<TComponent: 'static + Send + Sync>(
+pub fn client_prediction_system<TComponent: Synchronizable>(
     ci: Res<ConnectionInfo>,
     sim_time: Res<SimulationTime>,
     net: Res<NetworkResource>,
-    mut synchronizable_entity_query: Query<(&ServerEntity, &mut Synchronizable<TComponent>)>,
+    mut synchronizable_entity_query: Query<(&ServerEntity, &mut Synchronized<TComponent>)>,
 ) {
     for (server_entity, mut synchronizable) in &mut synchronizable_entity_query.iter_mut() {
         let mut command_frames = synchronizable.command_frames();

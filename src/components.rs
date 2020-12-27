@@ -1,9 +1,15 @@
+mod component_registry;
 mod local_player;
-mod synchronizable;
+mod player;
+mod synchronized;
 mod server_entity;
+mod rigid_body;
 
 pub use self::{
+    component_registry::*,
     local_player::*,
-    synchronizable::*,
-    server_entity::*
+    player::*,
+    synchronized::*,
+    server_entity::*,
+    rigid_body::*
 };

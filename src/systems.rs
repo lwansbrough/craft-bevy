@@ -6,8 +6,11 @@ mod client_prediction;
 mod network_message_listener;
 mod server_player_movement;
 mod chunk_loading_system;
+mod server_state_preauthoring;
 mod server_state_authoring;
 mod server_entity_spawning;
+mod client_entity_spawning;
+mod client_authoratative_state_consumption;
 
 pub use self::{
     command_accumulator::*,
@@ -18,6 +21,9 @@ pub use self::{
     network_message_listener::*,
     server_player_movement::*,
     chunk_loading_system::*,
+    server_state_preauthoring::*,
     server_state_authoring::*,
-    server_entity_spawning::*
+    server_entity_spawning::*,
+    client_entity_spawning::*,
+    client_authoratative_state_consumption::*
 };

@@ -9,7 +9,8 @@ use crate::models::*;
 use crate::resources::*;
 
 /// This system sends the latest authoritative state from synchronizable components to clients
-pub fn server_state_authoring_system<TComponent: Synchronizable>(
+pub fn server_state_preauthoring_system<TComponent: Synchronizable>(
+    commands: &mut Commands,
     clients: Res<Clients>,
     sim_time: Res<SimulationTime>,
     net: Res<NetworkResource>,
@@ -19,17 +20,6 @@ pub fn server_state_authoring_system<TComponent: Synchronizable>(
         let state_frames = synchronizable.state_frames();
         let state_frame = state_frames.history_iter(1).next();
 
-        if let Some(state_frame) = state_frame {
-            let frame: u32 = state_frame.frame;
-
-            let state_frame_message = NetMessage::AuthoritativeStateFrame(state_frame.clone());
-
-            let bytes: Vec<u8> = bincode::serialize(&state_frame_message).unwrap();
-            println!("Entity {} sending authoratative state for sim frame {}. Data: {:?}", entity.id(), frame, &bytes);
-            
-            for client in clients.iter() {
-                net.send(client.connection().addr, &bytes, NetworkDelivery::UnreliableUnordered);
-            }
-        }
+        commands.add_command(Synchronized::<TComponent>::author_state_command(entity, sim_time.frame()));
     }
 }

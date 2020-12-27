@@ -33,15 +33,19 @@ fn main() {
         .add_startup_system(setup.system())
         .add_system_to_stage(stage::PRE_UPDATE, network_message_listener_system.system())
         .add_system_to_stage(stage::PRE_UPDATE, server_player_movement_system.system())
-        .add_system_to_stage(stage::POST_UPDATE, server_entity_spawning_for_connected_clients.system())
-        .add_system_to_stage(stage::POST_UPDATE, server_entity_spawning_for_new_clients.system())
-        .add_system_to_stage(stage::POST_UPDATE, server_state_authoring_system::<RigidBodyHandleComponent>.system())
+        .add_stage_after(stage::POST_UPDATE, "pre_synchronize")
+        .add_stage_after("pre_synchronize", "synchronize")
+        .add_stage_after("synchronize", "post_synchronize")
+        .add_system_to_stage("pre_synchronize", server_state_preauthoring_system::<RigidBodyHandleComponent>.system())
+        .add_system_to_stage("pre_synchronize", server_entity_spawning_for_connected_clients.system())
+        .add_system_to_stage("pre_synchronize", server_entity_spawning_for_new_clients.system())
+        .add_system_to_stage("synchronize", server_state_authoring_system::<RigidBodyHandleComponent>.system())
         .run();
 }
 
 /// set up a simple 3D scene
 fn setup(
-    mut commands: Commands,
+    commands: &mut Commands,
     mut net: ResMut<NetworkResource>,
     ci: Res<ConnectionInfo>
 ) {

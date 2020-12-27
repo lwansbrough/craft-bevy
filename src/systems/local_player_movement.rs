@@ -1,7 +1,7 @@
 use bevy::{
     prelude::*,
 };
-use bevy_rapier3d::rapier::dynamics::{RigidBody, RigidBodyMut, RigidBodySet};
+use bevy_rapier3d::rapier::dynamics::{RigidBody, RigidBodySet};
 use bevy_rapier3d::rapier::math::{Vector};
 use bevy_rapier3d::physics::{RigidBodyHandleComponent};
 use crate::components::*;
@@ -13,7 +13,7 @@ use crate::systems::CommandAccumulatorState;
 pub struct LocalPlayerMovementState {
 }
 
-fn predict(local_player_movement: &ResMut<LocalPlayerMovementState>, sim_time: &SimulationTime, entity: Entity, input_command: &InputCommand, mut rigid_body: RigidBodyMut, synchronizable_rigid_body: &mut Synchronizable<RigidBodyHandleComponent>) {
+fn predict(local_player_movement: &ResMut<LocalPlayerMovementState>, sim_time: &SimulationTime, entity: Entity, input_command: &InputCommand, rigid_body: &mut RigidBody, synchronizable_rigid_body: &mut Synchronized<RigidBodyHandleComponent>) {
     synchronizable_rigid_body.command_frames().push(
         entity.id(),
         sim_time.frame(),
@@ -27,7 +27,7 @@ pub fn local_player_movement_system(
     command_accumulator: Res<CommandAccumulatorState>,
     input: Res<Input<KeyCode>>,
     mut rigid_body_set: ResMut<RigidBodySet>,
-    mut player_body_query: Query<(Entity, &LocalPlayerBody, &RigidBodyHandleComponent, &mut Synchronizable<RigidBodyHandleComponent>)>
+    mut player_body_query: Query<(Entity, &LocalPlayerBody, &RigidBodyHandleComponent, &mut Synchronized<RigidBodyHandleComponent>)>
 ) {
     let latest_input_command = *command_accumulator.input_buffer.inputs.back().unwrap_or(&InputCommand::default());
 

@@ -11,7 +11,7 @@ use crate::resources::*;
 
 /// Listen for network messages (server + client)
 pub fn network_message_listener_system/*<TComponent: 'static + Send + Sync>*/(
-    mut commands: Commands,
+    commands: &mut Commands,
     ci: Res<ConnectionInfo>,
     net: Res<NetworkResource>,
     mut state: ResMut<NetworkEventListenerState>,
@@ -49,7 +49,7 @@ pub fn network_message_listener_system/*<TComponent: 'static + Send + Sync>*/(
                         *conn,
                         &net,
                         &mut clients,
-                        &mut commands
+                        commands
                     ),
                     NetMessage::CommandFrame(command_frame) => handle_command_frame_event(
                         command_frame,
