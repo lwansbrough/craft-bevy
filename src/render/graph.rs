@@ -17,6 +17,7 @@ pub mod node {
     pub const TIME: &str = "time";
     pub const TRANSFORM: &str = "transform";
     pub const VOXEL_MATERIAL: &str = "voxel_material";
+    // pub const VOXEL_PASS: &str = "voxel_pass";
 }
 
 pub mod uniform {

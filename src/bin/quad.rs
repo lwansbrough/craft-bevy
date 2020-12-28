@@ -45,7 +45,6 @@ fn setup(
         // Fullscreen quad
         .spawn(VoxelBundle {
             mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(2.0, 2.0)))),
-            // mesh: meshes.add(Mesh::from(shape::Cube { size: 5.0 })),
             material: materials_voxel.add(VoxelMaterial::default()),
             ..Default::default()
         })
