@@ -24,7 +24,10 @@ fn main() {
         .add_plugin(bevy::diagnostic::PrintDiagnosticsPlugin::default())
         .add_plugin(VoxelRenderPlugin)
         .add_plugin(FlyCameraPlugin)
+        .add_asset::<VoxelVolume>()
+        .init_resource::<WindowResizeEventListenerState>()
         .add_startup_system(setup.system())
+        .add_system(window_resolution_system.system())
         .run();
 }
 
@@ -33,8 +36,26 @@ fn setup(
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials_voxel: ResMut<Assets<VoxelMaterial>>,
-    mut materials_standard: ResMut<Assets<StandardMaterial>>
+    mut materials_standard: ResMut<Assets<StandardMaterial>>,
+    mut voxel_volumes: ResMut<Assets<VoxelVolume>>,
 ) {
+    let mut voxels = vec![];
+
+    for x in 0..10 {
+        for y in 0..10 {
+            for z in 0..10 { 
+                if (x + y + z) % 2 == 0 {
+                    voxels.push(VoxelData { color: Vec4::new(1.0, 0.0, 0.0, 1.0) });
+                }
+                else {
+                    voxels.push(VoxelData { color: Vec4::new(0.0, 1.0, 0.0, 1.0) });
+                }
+            }
+        }
+    }
+
+    let map = voxel_volumes.add(VoxelVolume { size: Vec3::new(10.0, 10.0, 10.0), data: voxels });
+
     commands
         // TODO: Why do I need this in order for the quad to render?
         .spawn(PbrBundle {
@@ -46,6 +67,7 @@ fn setup(
         .spawn(VoxelBundle {
             mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(2.0, 2.0)))),
             material: materials_voxel.add(VoxelMaterial::default()),
+            voxel_volume: map,
             ..Default::default()
         })
         .spawn(Camera3dBundle {

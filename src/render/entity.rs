@@ -1,11 +1,13 @@
 use bevy::{ecs::{Bundle, ResMut}, prelude::{Assets, Draw, GlobalTransform, Handle, Mesh, RenderPipelines, Transform, shape::{self, Quad}}, render::{prelude::Visible, mesh::VertexAttributeValues, pipeline::{PrimitiveTopology, RenderPipeline}, render_graph::base::MainPass}, math::Vec2};
 
 use crate::render::material::VoxelMaterial;
+use crate::render::VoxelVolume;
 
 #[derive(Bundle)]
 pub struct VoxelBundle {
     pub mesh: Handle<Mesh>,
     pub material: Handle<VoxelMaterial>,
+    pub voxel_volume: Handle<VoxelVolume>,
     pub main_pass: MainPass,
     pub draw: Draw,
     pub visible: Visible,
@@ -25,6 +27,7 @@ impl Default for VoxelBundle {
             visible: Default::default(),
             transform: Default::default(),
             global_transform: Default::default(),
+            voxel_volume: Default::default()
         }
     }
 }

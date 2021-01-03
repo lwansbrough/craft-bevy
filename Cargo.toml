@@ -26,3 +26,4 @@ bevy_prototype_networking_laminar = { path = "../../bevy_prototype_networking_la
 noise = "0.6.0"
 bevy_fly_camera = "0.6.0"
 isosurface = "0.0.4"
+# bit-svo = { git = "https://github.com/bfops/bit-svo.git" }

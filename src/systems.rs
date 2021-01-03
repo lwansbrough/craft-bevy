@@ -11,6 +11,7 @@ mod server_state_authoring;
 mod server_entity_spawning;
 mod client_entity_spawning;
 mod client_authoratative_state_consumption;
+mod window_resolution;
 
 pub use self::{
     command_accumulator::*,
@@ -25,5 +26,6 @@ pub use self::{
     server_state_authoring::*,
     server_entity_spawning::*,
     client_entity_spawning::*,
-    client_authoratative_state_consumption::*
+    client_authoratative_state_consumption::*,
+    window_resolution::*
 };
