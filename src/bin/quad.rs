@@ -8,7 +8,11 @@ use bevy_rapier3d::rapier::dynamics::{BodyStatus, RigidBody, RigidBodyBuilder};
 use bevy_rapier3d::rapier::geometry::ColliderBuilder;
 use bevy_prototype_networking_laminar::{NetworkResource, NetworkingPlugin, NetworkDelivery};
 use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
-use noise::{MultiFractal, NoiseFn, RidgedMulti, Seedable};
+use noise::{
+    *,
+    utils::*
+};
+use craft::utilities::Gradient;
 
 use craft::components::*;
 use craft::events::*;
@@ -32,9 +36,6 @@ fn main() {
         .run();
 }
 
-const NUM_CUBES_PER_ROW: usize = 100;
-const NUM_CUBES: usize = NUM_CUBES_PER_ROW * NUM_CUBES_PER_ROW;
-
 /// set up a simple 3D scene
 fn setup(
     commands: &mut Commands,
@@ -43,47 +44,132 @@ fn setup(
     mut materials_standard: ResMut<Assets<StandardMaterial>>,
     mut voxel_volumes: ResMut<Assets<VoxelVolume>>,
 ) {
-    let voxel_displacement = Vec4::new(
-        NUM_CUBES_PER_ROW as f32 * 0.5,
-        0.0,
-        NUM_CUBES_PER_ROW as f32 * 0.5,
-        0.0,
+    let VOLUME_SIZE: Vec3 = Vec3::new(100.0, 100.0, 100.0);
+
+    let ground_gradient = Gradient::new()
+        .set_x_start(0.0)
+        .set_y_stop(1.0);
+
+    let lowland_shape_fractal = Billow::new()
+        .set_octaves(2)
+        .set_frequency(0.25);
+
+    let lowland_autocorrect = Clamp::<[f64; 3]>::new(&lowland_shape_fractal) // TODO: Should use AutoCorrect not Clamp
+        .set_bounds(-1.0, 1.0);
+
+    let lowland_scale = ScaleBias::new(&lowland_autocorrect)
+        .set_bias(-0.45)
+        .set_scale(0.125);
+
+    let lowland_y_scale = ScalePoint::new(&lowland_scale)
+        .set_y_scale(0.0);
+    
+    let lowland_terrain = Displace::new(
+        &ground_gradient,
+        Constant::new(0.0),
+        &lowland_y_scale,
+        Constant::new(0.0),
+        Constant::new(0.0)
     );
-    let noise = RidgedMulti::new()
-        .set_seed(1234)
-        .set_frequency(0.008)
-        .set_octaves(5);
-    let mut voxels = Vec::with_capacity(NUM_CUBES as usize);
+
+    let highland_shape_fractal = Fbm::new()
+        .set_octaves(4)
+        .set_frequency(2.0);
+
+    let highland_autocorrect = Clamp::<[f64; 3]>::new(&highland_shape_fractal) // TODO: Should use AutoCorrect not Clamp
+        .set_bounds(-1.0, 1.0);
+
+    let highland_scale = ScaleBias::new(&highland_autocorrect)
+        .set_bias(0.0)
+        .set_scale(0.25);
+
+    let highland_y_scale = ScalePoint::new(&highland_scale)
+        .set_y_scale(0.0);
+
+    let highland_terrain = Displace::new(
+        &ground_gradient,
+        Constant::new(0.0),
+        &highland_y_scale,
+        Constant::new(0.0),
+        Constant::new(0.0)
+    );
+
+    let mountain_shape_fractal = RidgedMulti::new()
+        .set_octaves(4)
+        .set_frequency(2.0);
+    
+    let mountain_autocorrect = Clamp::new(&mountain_shape_fractal) // TODO: Should use AutoCorrect not Clamp
+        .set_bounds(-1.0, 1.0);
+
+    let mountain_scale = ScaleBias::new(&mountain_autocorrect)
+        .set_bias(0.15)
+        .set_scale(0.45);
+
+    let mountain_y_scale = ScalePoint::new(&mountain_scale)
+        .set_y_scale(0.25);
+
+    let mountain_terrain = Displace::new(
+        &ground_gradient,
+        Constant::new(0.0),
+        &mountain_y_scale,
+        Constant::new(0.0),
+        Constant::new(0.0)
+    );
+
+    let terrain_type_fractal = Fbm::new()
+        .set_octaves(3)
+        .set_frequency(0.125);
+
+    let terrain_type_autocorrect = Clamp::new(&terrain_type_fractal) // TODO: Should use AutoCorrect not Clamp
+        .set_bounds(-1.0, 1.0);
+
+    let terrain_type_y_scale = ScalePoint::new(&terrain_type_autocorrect)
+        .set_y_scale(0.0);
+
+    let terrain_type_cache = Cache::new(&terrain_type_y_scale);
+
+    let highland_mountain_select = Select::new(&highland_terrain, &mountain_terrain, &terrain_type_cache)
+        .set_falloff(0.2);
+
+    let highland_lowland_select = Select::new(&lowland_terrain, &highland_mountain_select, &terrain_type_cache)
+        .set_falloff(0.15);
+
+    let highland_lowland_select_cache = Cache::new(&highland_lowland_select);
+
+    let source1 = Constant::new(0.0);
+    let source2 = Constant::new(1.0);
+    let generator = Select::new(&source1, &source2, &highland_lowland_select_cache);
+
+    let mut voxels = Vec::with_capacity((VOLUME_SIZE.x * VOLUME_SIZE.y * VOLUME_SIZE.z) as usize);
     let palette = vec![
         Vec4::zero(),
-        Vec4::new(0.275, 0.51, 0.706, 1.0),  // Blue
-        Vec4::new(1.0, 0.98, 0.804, 1.0),    // Yellow
-        Vec4::new(0.604, 0.804, 0.196, 1.0), // Green
+        Vec4::new(0.086, 0.651, 0.780, 1.0),  // Blue
+        Vec4::new(0.900, 0.894, 0.737, 1.0), // Yellow
+        Vec4::new(0.196, 0.659, 0.321, 1.0), // Green
         Vec4::new(0.545, 0.271, 0.075, 1.0), // Brown
         Vec4::new(0.502, 0.502, 0.502, 1.0), // Grey
         Vec4::new(1.0, 0.98, 0.98, 1.0),     // White
     ];
-    for z in 0..NUM_CUBES_PER_ROW {
-        for y in 0..NUM_CUBES_PER_ROW {
-            for x in 0..NUM_CUBES_PER_ROW {
-                let y_noise = noise.get([x as f64, z as f64]);
-                let y_val = ((y_noise + 1.0) / 2.0 * NUM_CUBES_PER_ROW as f64).floor() as usize;
+    
+    let OFFSET: f64 = 1.0;
+    for z in 0..VOLUME_SIZE.z as u32 {
+        for y in 0..VOLUME_SIZE.y as u32 {
+            for x in 0..VOLUME_SIZE.x as u32 {
+                let y_noise = generator.get([x as f64 / 20.0 + OFFSET, y as f64 / 20.0, z as f64 / 20.0]);
 
-                if (y > y_val) {
-                    voxels.push(VoxelData {
-                        material: 0,
-                    });
+                if y_noise == 0.0 {
+                    voxels.push(VoxelData { material: 0 });
                     continue;
                 }
 
                 voxels.push(VoxelData {
-                    material: match y_noise {
-                        y_noise if y_noise < -0.5 => 1, // Blue
-                        y_noise if y_noise < -0.4 => 2, // Yellow
-                        y_noise if y_noise < -0.2 => 3, // Green
-                        y_noise if y_noise < -0.1 => 4, // Brown
-                        y_noise if y_noise < 0.6 => 5,  // Grey
-                        _ => 6,             // White
+                    material: match y {
+                        y if y < 25 => 1, // Blue
+                        y if y < 27 => 2, // Yellow
+                        y if y < 35 => 3, // Green
+                        y if y < 50 => 4, // Brown
+                        y if y < 70 => 5, // Grey
+                        _ => 6,           // White
                     },
                 });
             }
@@ -93,7 +179,7 @@ fn setup(
 
     let map = voxel_volumes.add(VoxelVolume {
         palette: palette,
-        size: Vec3::new(NUM_CUBES_PER_ROW as f32, NUM_CUBES_PER_ROW as f32, NUM_CUBES_PER_ROW as f32),
+        size: VOLUME_SIZE,
         data: voxels
     });
 

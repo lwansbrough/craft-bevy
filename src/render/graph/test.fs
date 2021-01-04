@@ -1,5 +1,7 @@
 #version 450
 
+// Adapted from https://github.com/gpdaniels/Raymarcher which itself is an adaptation of https://github.com/ivl/Voxgrind
+
 // precision highp float;
 
 layout(location = 0) in vec2 v_Position;
