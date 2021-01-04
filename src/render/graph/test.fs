@@ -9,11 +9,8 @@ layout(location = 0) out vec4 o_Target;
 
 layout(set = 0, binding = 0) uniform Camera {
     mat4 ViewProj;
+    mat4 View;
 };
-
-// layout(set = 0, binding = 1) uniform Transform {
-//     mat4 Model;
-// };
 
 layout(set = 1, binding = 0) uniform Time {
     double TimeElapsed;
@@ -25,7 +22,7 @@ layout(set = 1, binding = 1) uniform Resolution {
 };
 
 struct VoxelData {
-    vec4 color;
+    uint material;
 };
 layout(set = 2, binding = 0) buffer VoxelVolume_data {
     VoxelData[] voxel_volume_data;
@@ -33,6 +30,10 @@ layout(set = 2, binding = 0) buffer VoxelVolume_data {
 
 layout(set = 2, binding = 1) uniform VoxelVolume_size {
     vec3 voxel_volume_size;
+};
+
+layout(set = 2, binding = 2) uniform VoxelVolume_palette {
+    vec4[6] voxel_volume_palette;
 };
 
 vec3 LightPosition = vec3(0.0, 100.0, 0.0);
@@ -59,10 +60,8 @@ vec4 SampleVolume(in vec3 Position) {
     // std::uint8_t Density : 2;
     // std::uint8_t Strength : 3;
     // std::uint8_t FillLevel : 3;
-    vec4 Data = voxel_volume_data[uint(Position.z * voxel_volume_size.x * voxel_volume_size.y + Position.y * voxel_volume_size.x + Position.x)].color;
-    // vec4 Data = voxel_volume_data[uint(Position.x + (Position.y + voxel_volume_size.y * floor(Position.z)))].color;
-    // vec4 Data = voxel_volume_data[0].color;
-    return Data;
+    uint material = voxel_volume_data[uint(Position.z * voxel_volume_size.x * voxel_volume_size.y + Position.y * voxel_volume_size.x + Position.x)].material;
+    return voxel_volume_palette[material];
     // uint Data = texelFetch(BinarySampler, ivec2(Position.x , (Position.y + voxel_volume_size.y * floor(Position.z))), 0).r;
     // uint SaturationValue = (Data >> uint(0)) & uint(0x3);
     // float Saturation = float(SaturationValue) / 3.0f;
@@ -104,16 +103,20 @@ bool IsInsideBox(vec3 Position, vec3 BoxBottomLeft, vec3 BoxTopRight) {
 
 void main(void) {
     // Size of the scene
-    // vec3 CameraPosition = vec3((Model * ViewProj)[3]);
-    vec3 CameraPosition = vec3(ViewProj[3]);
+    mat4 InverseView = inverse(View);
+    vec3 CameraPosition = vec3(InverseView[3]);
+    // vec3 CameraPosition = vec3(0.0, 0.0, 20.0);
 
     float NearClip = 1.0;
     float FarClip = 1000.0;
     float FieldOfView = 3.1415 / 4.0;
     vec2 ScreenResolution = vec2(ScreenResolutionX, ScreenResolutionY);
-    vec4 FogColor = vec4(0.5, 0.5, 0.5, 1.0);
-    vec3 ForwardVector = normalize(vec3(ViewProj[2]));
-    vec3 RightVector = normalize(cross(vec3(0.0, 1.0, 0.0), ForwardVector));
+    vec4 FogColor = vec4(0.9, 0.9, 0.9, 1.0);
+    vec3 ForwardVector = normalize(vec3(-InverseView[2]));
+    // vec3 ForwardVector = normalize(vec3(0.0, 0.0, -1.0));
+    // vec3 RightVector = normalize(vec3(-View[0]));
+    // vec3 UpVector = normalize(vec3(-View[1]));
+    vec3 RightVector = normalize(cross(vec3(0.0, -1.0, 0.0), ForwardVector));
     vec3 UpVector = normalize(cross(ForwardVector, RightVector));
     vec2 ViewportPosition = gl_FragCoord.xy / ScreenResolution;
 
@@ -222,8 +225,8 @@ void main(void) {
             // Fog colour.
             float Fog = min(1.0, length(IntersectionPosition - CameraPosition) / FogDistance);
             // Mix this voxel with the point light.
-            // vec4 VoxelColor = mix(Voxel * PointLight, FogColor, Fog);
-            vec4 VoxelColor = Voxel;
+            vec4 VoxelColor = mix(Voxel * PointLight, FogColor, Fog);
+            // vec4 VoxelColor = Voxel;
             // Mix the lit voxel with the previously combined colours.
             o_Target = mix(o_Target, VoxelColor, (1.0 - o_Target.a) * Voxel.a);
             o_Target.a = min(1.0, o_Target.a + Voxel.a);

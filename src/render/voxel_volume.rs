@@ -10,6 +10,7 @@ use bevy::{
 #[derive(Debug, RenderResources, RenderResource, TypeUuid)]
 #[uuid = "9c15ff5b-12ae-4f62-a489-c3a71ebda138"]
 pub struct VoxelVolume {
+    pub palette: Vec<Vec4>,
     #[render_resources(buffer)]
     pub data: Vec<VoxelData>,
     pub size: Vec3,
@@ -20,6 +21,7 @@ unsafe impl Byteable for VoxelVolume {}
 impl Default for VoxelVolume {
     fn default() -> VoxelVolume {
         VoxelVolume {
+            palette: Vec::new(),
             data: Vec::new(),
             size: Vec3::zero()
         }
@@ -28,7 +30,7 @@ impl Default for VoxelVolume {
 
 #[derive(Debug)]
 pub struct VoxelData {
-    pub color: Vec4,
+    pub material: u32,
 }
 
 unsafe impl Byteable for VoxelData {}
@@ -36,7 +38,7 @@ unsafe impl Byteable for VoxelData {}
 impl Default for VoxelData {
     fn default() -> Self {
         Self {
-            color: Vec4::one(),
+            material: 0,
         }
     }
 }
