@@ -44,7 +44,9 @@ fn setup(
     mut materials_standard: ResMut<Assets<StandardMaterial>>,
     mut voxel_volumes: ResMut<Assets<VoxelVolume>>,
 ) {
-    let VOLUME_SIZE: Vec3 = Vec3::new(100.0, 100.0, 100.0);
+    let VOLUME_SIZE: [u16; 3] = [256, 256, 256];
+
+    // let test = Octree::new(VOLUME_SIZE, 12);
 
     let ground_gradient = Gradient::new()
         .set_x_start(0.0)
@@ -140,7 +142,7 @@ fn setup(
     let source2 = Constant::new(1.0);
     let generator = Select::new(&source1, &source2, &highland_lowland_select_cache);
 
-    let mut voxels = Vec::with_capacity((VOLUME_SIZE.x * VOLUME_SIZE.y * VOLUME_SIZE.z) as usize);
+    let mut voxels = Vec::with_capacity(VOLUME_SIZE[0] as usize * VOLUME_SIZE[1] as usize * VOLUME_SIZE[2] as usize);
     let palette = vec![
         Vec4::zero(),
         Vec4::new(0.086, 0.651, 0.780, 1.0),  // Blue
@@ -152,9 +154,9 @@ fn setup(
     ];
     
     let OFFSET: f64 = 1.0;
-    for z in 0..VOLUME_SIZE.z as u32 {
-        for y in 0..VOLUME_SIZE.y as u32 {
-            for x in 0..VOLUME_SIZE.x as u32 {
+    for z in 0..VOLUME_SIZE[2] as u32 {
+        for y in 0..VOLUME_SIZE[1] as u32 {
+            for x in 0..VOLUME_SIZE[0] as u32 {
                 let y_noise = generator.get([x as f64 / 20.0 + OFFSET, y as f64 / 20.0, z as f64 / 20.0]);
 
                 if y_noise == 0.0 {
@@ -179,7 +181,7 @@ fn setup(
 
     let map = voxel_volumes.add(VoxelVolume {
         palette: palette,
-        size: VOLUME_SIZE,
+        size: Vec3::new(VOLUME_SIZE[0] as f32, VOLUME_SIZE[1] as f32, VOLUME_SIZE[2] as f32),
         data: voxels
     });
 
@@ -272,7 +274,6 @@ fn setup(
         // Fullscreen quad
         .spawn(VoxelBundle {
             mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(2.0, 2.0)))),
-            material: materials_voxel.add(VoxelMaterial::default()),
             voxel_volume: map,
             ..Default::default()
         })

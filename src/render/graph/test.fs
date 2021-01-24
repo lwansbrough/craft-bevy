@@ -225,7 +225,8 @@ void main(void) {
             // Point lighting.
             float PointLight = (1.0 - AmbientOcclusion) * min(1.0, max(0.0, dot(NormalDirection, normalize(LightPosition - IntersectionPosition))));
             // Fog colour.
-            float Fog = min(1.0, length(IntersectionPosition - CameraPosition) / FogDistance);
+            // float Fog = min(1.0, length(IntersectionPosition - CameraPosition) / FogDistance);
+            float Fog = 0.0;
             // Mix this voxel with the point light.
             vec4 VoxelColor = mix(Voxel * PointLight, FogColor, Fog);
             // vec4 VoxelColor = Voxel;

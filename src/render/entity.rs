@@ -6,7 +6,6 @@ use crate::render::VoxelVolume;
 #[derive(Bundle)]
 pub struct VoxelBundle {
     pub mesh: Handle<Mesh>,
-    pub material: Handle<VoxelMaterial>,
     pub voxel_volume: Handle<VoxelVolume>,
     pub main_pass: MainPass,
     pub draw: Draw,
@@ -21,7 +20,6 @@ impl Default for VoxelBundle {
         Self {
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(super::graph::pipeline::PIPELINE_HANDLE.typed())]),
             mesh: Default::default(),
-            material: Default::default(),
             main_pass: Default::default(),
             draw: Default::default(),
             visible: Default::default(),
