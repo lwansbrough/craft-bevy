@@ -12,7 +12,7 @@ use bevy::{
 use nodes::TimeNode;
 use nodes::ResolutionNode;
 
-// use self::nodes::VoxelVolumeNode;
+use self::nodes::VoxelVolumeNode;
 
 pub mod nodes;
 pub mod pipeline;
@@ -22,7 +22,7 @@ pub mod node {
     pub const RESOLUTION: &str = "resolution";
     pub const TRANSFORM: &str = "transform";
     pub const VOXEL_VOLUME: &str = "voxel_volume";
-    // pub const VOXEL_PASS: &str = "voxel_pass";
+    pub const VOXEL_PASS: &str = "voxel_pass";
 }
 
 pub mod uniform {
@@ -41,7 +41,7 @@ pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
     );
     graph.add_system_node(node::TIME, TimeNode::new());
     graph.add_system_node(node::RESOLUTION, ResolutionNode::new());
-    // graph.add_system_node(node::VOXEL_VOLUME, VoxelVolumeNode::new());
+    graph.add_system_node(node::VOXEL_VOLUME, VoxelVolumeNode::new());
 
     let mut shaders = resources.get_mut::<Assets<Shader>>().unwrap();
     let mut pipelines = resources.get_mut::<Assets<PipelineDescriptor>>().unwrap();
@@ -52,6 +52,6 @@ pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
 
     graph.add_node_edge(node::TIME, base::node::MAIN_PASS).unwrap();
     graph.add_node_edge(node::RESOLUTION, base::node::MAIN_PASS).unwrap();
-    // graph.add_node_edge(node::VOXEL_VOLUME, base::node::MAIN_PASS).unwrap();
+    graph.add_node_edge(node::VOXEL_VOLUME, base::node::MAIN_PASS).unwrap();
     graph.add_node_edge(node::TRANSFORM, base::node::MAIN_PASS).unwrap();
 }

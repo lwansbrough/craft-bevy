@@ -40,11 +40,11 @@ fn main() {
 fn setup(
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials_voxel: ResMut<Assets<VoxelMaterial>>,
+    // mut materials_voxel: ResMut<Assets<VoxelMaterial>>,
     mut materials_standard: ResMut<Assets<StandardMaterial>>,
     mut voxel_volumes: ResMut<Assets<VoxelVolume>>,
 ) {
-    let VOLUME_SIZE: [u16; 3] = [256, 256, 256];
+    let VOLUME_SIZE: [u16; 3] = [16, 16, 16];
 
     // let test = Octree::new(VOLUME_SIZE, 12);
 
