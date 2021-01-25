@@ -26,17 +26,19 @@ layout(set = 1, binding = 1) uniform Resolution {
 struct VoxelData {
     uint material;
 };
-layout(set = 2, binding = 0) buffer VoxelVolume_data {
-    VoxelData[] voxel_volume_data;
-};
-
-layout(set = 2, binding = 1) uniform VoxelVolume_size {
+layout(set = 2, binding = 0) buffer VoxelVolume {
+    vec4 voxel_volume_palette[255];
     vec3 voxel_volume_size;
+    VoxelData voxel_volume_data[];
 };
 
-layout(set = 2, binding = 2) uniform VoxelVolume_palette {
-    vec4[6] voxel_volume_palette;
-};
+// layout(set = 2, binding = 1) uniform VoxelVolume_size {
+//     vec3 voxel_volume_size;
+// };
+
+// layout(set = 2, binding = 2) uniform VoxelVolume_palette {
+//     vec4[6] voxel_volume_palette;
+// };
 
 vec3 LightPosition = vec3(0.0, 100.0, 0.0);
 vec3 SceneOffset = vec3(0.0, 0.0, 0.0);
@@ -62,8 +64,13 @@ vec4 SampleVolume(in vec3 Position) {
     // std::uint8_t Density : 2;
     // std::uint8_t Strength : 3;
     // std::uint8_t FillLevel : 3;
+
+
+    // return vec4(1.0, 0.0, 0.0, 1.0);
     uint material = voxel_volume_data[uint(Position.z * voxel_volume_size.x * voxel_volume_size.y + Position.y * voxel_volume_size.x + Position.x)].material;
     return voxel_volume_palette[material];
+    
+    
     // uint Data = texelFetch(BinarySampler, ivec2(Position.x , (Position.y + voxel_volume_size.y * floor(Position.z))), 0).r;
     // uint SaturationValue = (Data >> uint(0)) & uint(0x3);
     // float Saturation = float(SaturationValue) / 3.0f;
@@ -104,6 +111,13 @@ bool IsInsideBox(vec3 Position, vec3 BoxBottomLeft, vec3 BoxTopRight) {
 }
 
 void main(void) {
+
+    // o_Target = vec4(voxel_volume_size.x, 0.0, 0.0, 1.0);
+    // return;
+
+    // o_Target = voxel_volume_palette[2];
+    // return;
+
     // Size of the scene
     mat4 InverseView = inverse(View);
     vec3 CameraPosition = vec3(InverseView[3]);

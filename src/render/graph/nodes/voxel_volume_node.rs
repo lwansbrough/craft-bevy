@@ -79,12 +79,13 @@ fn remove_current_voxel_resources(
 pub fn voxel_node_system(
     mut state: Local<VoxelVolumeNodeState>,
     render_resource_context: Res<Box<dyn RenderResourceContext>>,
+    mut render_resource_bindings: ResMut<RenderResourceBindings>,
     // TODO: this write on RenderResourceBindings will prevent this system from running in parallel with other systems that do the same
     voxel_volumes: Res<Assets<VoxelVolume>>,
     voxel_events: Res<Events<AssetEvent<VoxelVolume>>>,
     mut queries: QuerySet<(
         Query<&mut RenderPipelines, With<Handle<VoxelVolume>>>,
-        Query<(Entity, &Handle<VoxelVolume>), Changed<Handle<VoxelVolume>>>,
+        Query<(Entity, &Handle<VoxelVolume>, &mut RenderPipelines), Changed<Handle<VoxelVolume>>>,
     )>,
 ) {
     let state = &mut state;
@@ -113,8 +114,7 @@ pub fn voxel_node_system(
     for changed_voxel_volume_handle in changed_voxel_volumes.iter() {
         if let Some(voxel_volume) = voxel_volumes.get(changed_voxel_volume_handle) {
             // TODO: check for individual buffer changes in non-interleaved mode
-            let data = voxel_volume.data.as_bytes();
-            let size = data.len();
+            let size = voxel_volume.byte_len();
 
             if let Some(RenderResourceId::Buffer(staging_buffer)) =
                 render_resource_context.get_asset_resource(changed_voxel_volume_handle, VOXEL_VOLUME_STAGING_BUFFER_ID)
@@ -147,18 +147,11 @@ pub fn voxel_node_system(
                     VOXEL_VOLUME_STAGING_BUFFER_ID,
                 );
             }
-            
-            // update_entity_voxel_volume(
-            //     &mut state.command_queue,
-            //     render_resource_context,
-            //     voxel_volume,
-            //     changed_voxel_volume_handle,
-            // );
         }
     }
 
     // handover buffers to pipeline
-    for (entity, handle) in queries.q1_mut().iter_mut() {
+    for (entity, handle, render_pipelines) in queries.q1_mut().iter_mut() {
         let voxel_entities = state
             .voxel_entities
             .entry(handle.clone_weak())
@@ -167,7 +160,7 @@ pub fn voxel_node_system(
         voxel_entities.entities.insert(entity);
         
         if let Some(voxel_volume) = voxel_volumes.get(handle) {
-            update_entity_voxel_volume(&mut state.command_queue, render_resource_context, voxel_volume, handle);
+            update_entity_voxel_volume(&mut state.command_queue, render_resource_context, voxel_volume, handle, render_pipelines);
         }
     }
 }
@@ -177,25 +170,34 @@ fn update_entity_voxel_volume(
     render_resource_context: &dyn RenderResourceContext,
     voxel_volume: &VoxelVolume,
     handle: &Handle<VoxelVolume>,
+    mut render_pipelines: Mut<RenderPipelines>,
 ) {
     if let Some(RenderResourceId::Buffer(staging_buffer)) =
         render_resource_context.get_asset_resource(handle, VOXEL_VOLUME_STAGING_BUFFER_ID)
     {
-        let voxels = &voxel_volume.data;
-        let voxels_bytes = voxels.as_bytes();
+        let voxels_bytes = &voxel_volume.to_bytes();
         let voxels_size = voxels_bytes.len();
         render_resource_context.write_mapped_buffer(
             staging_buffer,
             0..voxels_size as u64,
             &mut |data, _renderer| {
-                data[0..voxels_size].copy_from_slice(voxels_bytes);
+                data[0..voxels_size].copy_from_slice(&voxels_bytes[..]);
             },
         );
         render_resource_context.unmap_buffer(staging_buffer);
 
         if let Some(RenderResourceId::Buffer(voxel_buffer)) =
-        render_resource_context.get_asset_resource(handle, VOXEL_VOLUME_BUFFER_ID)
+            render_resource_context.get_asset_resource(handle, VOXEL_VOLUME_BUFFER_ID)
         {
+            render_pipelines.bindings.set(
+                super::super::storage::VOXEL_VOLUME,
+                RenderResourceBinding::Buffer {
+                    buffer: voxel_buffer,
+                    range: 0..voxels_size as u64,
+                    dynamic_index: None,
+                },
+            );
+
             command_queue.copy_buffer_to_buffer(
                 staging_buffer,
                 0,

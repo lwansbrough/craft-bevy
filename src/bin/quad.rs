@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 use std::time::Duration;
 
-use bevy::{prelude::*, render::renderer::RenderResourceBinding};
+use bevy::{core::AsBytes, prelude::*, render::renderer::RenderResourceBinding};
 use bevy::{render::renderer::{RenderResourceContext, RenderResourceBindings, BufferUsage, BufferInfo}, app::{ScheduleRunnerSettings}};
 use bevy_rapier3d::physics::{RapierPhysicsPlugin, RigidBodyHandleComponent};
 use bevy_rapier3d::rapier::dynamics::{BodyStatus, RigidBody, RigidBodyBuilder};
@@ -142,15 +142,22 @@ fn setup(
     let generator = Select::new(&source1, &source2, &highland_lowland_select_cache);
 
     let mut voxels = Vec::with_capacity(VOLUME_SIZE[0] as usize * VOLUME_SIZE[1] as usize * VOLUME_SIZE[2] as usize);
-    let palette = vec![
-        Vec4::zero(),
-        Vec4::new(0.086, 0.651, 0.780, 1.0),  // Blue
-        Vec4::new(0.900, 0.894, 0.737, 1.0), // Yellow
-        Vec4::new(0.196, 0.659, 0.321, 1.0), // Green
-        Vec4::new(0.545, 0.271, 0.075, 1.0), // Brown
-        Vec4::new(0.502, 0.502, 0.502, 1.0), // Grey
-        Vec4::new(1.0, 0.98, 0.98, 1.0),     // White
-    ];
+    // let palette = vec![
+    //     Vec4::zero(),
+    //     Vec4::new(0.086, 0.651, 0.780, 1.0),  // Blue
+    //     Vec4::new(0.900, 0.894, 0.737, 1.0), // Yellow
+    //     Vec4::new(0.196, 0.659, 0.321, 1.0), // Green
+    //     Vec4::new(0.545, 0.271, 0.075, 1.0), // Brown
+    //     Vec4::new(0.502, 0.502, 0.502, 1.0), // Grey
+    //     Vec4::new(1.0, 0.98, 0.98, 1.0),     // White
+    // ];
+    let mut palette = vec![Vec4::zero(); 255];
+    palette[1] = Vec4::new(0.086, 0.651, 0.780, 1.0);  // Blue
+    palette[2] = Vec4::new(0.900, 0.894, 0.737, 1.0); // Yellow
+    palette[3] = Vec4::new(0.196, 0.659, 0.321, 1.0); // Green
+    palette[4] = Vec4::new(0.545, 0.271, 0.075, 1.0); // Brown
+    palette[5] = Vec4::new(0.502, 0.502, 0.502, 1.0); // Grey
+    palette[6] = Vec4::new(1.0, 0.98, 0.98, 1.0);     // White
     
     let OFFSET: f64 = 1.0;
     for z in 0..VOLUME_SIZE[2] as u32 {
@@ -183,6 +190,16 @@ fn setup(
         size: Vec3::new(VOLUME_SIZE[0] as f32, VOLUME_SIZE[1] as f32, VOLUME_SIZE[2] as f32),
         data: voxels
     });
+
+    // let test = VoxelVolume {
+    //     palette: palette,
+    //     size: Vec3::new(VOLUME_SIZE[0] as f32, VOLUME_SIZE[1] as f32, VOLUME_SIZE[2] as f32),
+    //     data: voxels
+    // };
+
+    // println!("{:?}", test.to_bytes());
+
+    // println!("{:?}", Vec3::new(VOLUME_SIZE[0] as f32, VOLUME_SIZE[1] as f32, VOLUME_SIZE[2] as f32).as_bytes());
 
     // let palette = vec![
     //     Vec4::zero(),
