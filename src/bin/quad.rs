@@ -26,7 +26,7 @@ fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
         .add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
-        .add_plugin(bevy::diagnostic::PrintDiagnosticsPlugin::default())
+        // .add_plugin(bevy::diagnostic::PrintDiagnosticsPlugin::default())
         .add_plugin(VoxelRenderPlugin)
         .add_plugin(FlyCameraPlugin)
         .add_asset::<VoxelVolume>()
@@ -40,7 +40,6 @@ fn main() {
 fn setup(
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    // mut materials_voxel: ResMut<Assets<VoxelMaterial>>,
     mut materials_standard: ResMut<Assets<StandardMaterial>>,
     mut voxel_volumes: ResMut<Assets<VoxelVolume>>,
 ) {
@@ -274,9 +273,16 @@ fn setup(
         // Fullscreen quad
         .spawn(VoxelBundle {
             mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(2.0, 2.0)))),
+            material: materials_standard.add(bevy::render::color::Color::ALICE_BLUE.into()),
             voxel_volume: map,
             ..Default::default()
         })
+        // .spawn(PbrBundle {
+        //     material: materials_standard.add(bevy::render::color::Color::ALICE_BLUE.into()),
+        //     transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+        //     mesh: meshes.add(Mesh::from(shape::Plane { size: 10.0 })),
+        //     ..Default::default()
+        // })
         .spawn(Camera3dBundle {
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 20.0)),
             ..Default::default()

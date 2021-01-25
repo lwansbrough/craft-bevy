@@ -1,5 +1,4 @@
 use bevy::{core::{AsBytes, Byteable}, ecs::{ResMut, Res, Local, Commands, System, World, Resources}, prelude::*, render::{render_graph::{SystemNode, CommandQueue, Node, ResourceSlots}, renderer::{BufferId, BufferInfo, BufferUsage, RenderContext, RenderResourceBinding, RenderResourceBindings, RenderResourceContext, RenderResourceId}}, utils::{HashMap, HashSet}};
-use bevy_rapier3d::rapier::data;
 
 use crate::VoxelVolume;
 
@@ -36,8 +35,6 @@ impl SystemNode for VoxelVolumeNode {
             system.id(),
             VoxelVolumeNodeState {
                 command_queue: self.command_queue.clone(),
-                voxel_buffer: None,
-                staging_buffer: None,
                 ..Default::default()
             },
         );
@@ -53,8 +50,6 @@ pub struct VoxelEntities {
 #[derive(Default)]
 pub struct VoxelVolumeNodeState {
     command_queue: CommandQueue,
-    voxel_buffer: Option<BufferId>,
-    staging_buffer: Option<BufferId>,
     voxel_volume_event_reader: EventReader<AssetEvent<VoxelVolume>>,
     voxel_entities: HashMap<Handle<VoxelVolume>, VoxelEntities>,
 }
