@@ -142,15 +142,6 @@ fn setup(
     let generator = Select::new(&source1, &source2, &highland_lowland_select_cache);
 
     let mut voxels = Vec::with_capacity(VOLUME_SIZE[0] as usize * VOLUME_SIZE[1] as usize * VOLUME_SIZE[2] as usize);
-    // let palette = vec![
-    //     Vec4::zero(),
-    //     Vec4::new(0.086, 0.651, 0.780, 1.0),  // Blue
-    //     Vec4::new(0.900, 0.894, 0.737, 1.0), // Yellow
-    //     Vec4::new(0.196, 0.659, 0.321, 1.0), // Green
-    //     Vec4::new(0.545, 0.271, 0.075, 1.0), // Brown
-    //     Vec4::new(0.502, 0.502, 0.502, 1.0), // Grey
-    //     Vec4::new(1.0, 0.98, 0.98, 1.0),     // White
-    // ];
     let mut palette = vec![Vec4::zero(); 255];
     palette[1] = Vec4::new(0.086, 0.651, 0.780, 1.0);  // Blue
     palette[2] = Vec4::new(0.900, 0.894, 0.737, 1.0); // Yellow
@@ -191,6 +182,47 @@ fn setup(
         data: voxels
     });
 
+    let mut voxels2 = Vec::with_capacity(VOLUME_SIZE[0] as usize * VOLUME_SIZE[1] as usize * VOLUME_SIZE[2] as usize);
+    let mut palette2 = vec![Vec4::zero(); 255];
+    palette2[1] = Vec4::new(0.086, 0.651, 0.780, 1.0);  // Blue
+    palette2[2] = Vec4::new(0.900, 0.894, 0.737, 1.0); // Yellow
+    palette2[3] = Vec4::new(0.196, 0.659, 0.321, 1.0); // Green
+    palette2[4] = Vec4::new(0.545, 0.271, 0.075, 1.0); // Brown
+    palette2[5] = Vec4::new(0.502, 0.502, 0.502, 1.0); // Grey
+    palette2[6] = Vec4::new(1.0, 0.98, 0.98, 1.0);     // White
+    
+    let OFFSET: f64 = 1.0;
+    for z in 0..VOLUME_SIZE[2] as u32 {
+        for y in 0..VOLUME_SIZE[1] as u32 {
+            for x in 0..VOLUME_SIZE[0] as u32 {
+                let y_noise = generator.get([x as f64 / 20.0 + OFFSET, y as f64 / 20.0, z as f64 / 20.0]);
+
+                if y_noise == 0.0 {
+                    voxels2.push(VoxelData { material: 0 });
+                    continue;
+                }
+
+                voxels2.push(VoxelData {
+                    material: match y {
+                        y if y < 25 => 1, // Blue
+                        y if y < 27 => 2, // Yellow
+                        y if y < 35 => 3, // Green
+                        y if y < 50 => 4, // Brown
+                        y if y < 70 => 5, // Grey
+                        _ => 6,           // White
+                    },
+                });
+            }
+            
+        }
+    }
+
+    let map2 = voxel_volumes.add(VoxelVolume {
+        palette: palette2,
+        size: Vec3::new(VOLUME_SIZE[0] as f32, VOLUME_SIZE[1] as f32, VOLUME_SIZE[2] as f32),
+        data: voxels2
+    });
+
     // let test = VoxelVolume {
     //     palette: palette,
     //     size: Vec3::new(VOLUME_SIZE[0] as f32, VOLUME_SIZE[1] as f32, VOLUME_SIZE[2] as f32),
@@ -201,103 +233,182 @@ fn setup(
 
     // println!("{:?}", Vec3::new(VOLUME_SIZE[0] as f32, VOLUME_SIZE[1] as f32, VOLUME_SIZE[2] as f32).as_bytes());
 
-    // let palette = vec![
-    //     Vec4::zero(),
-    //     Vec4::new(1.0, 0.0, 0.0, 1.0),
-    //     Vec4::new(0.0, 1.0, 0.0, 1.0),
-    //     Vec4::new(0.0, 0.0, 1.0, 1.0),
-    // ];
+    let mut palette3 = vec![Vec4::zero(); 255];
+    palette3[1] = Vec4::new(1.0, 0.0, 0.0, 1.0);
+    palette3[2] = Vec4::new(0.0, 1.0, 0.0, 1.0);
+    palette3[3] = Vec4::new(0.0, 0.0, 1.0, 1.0);
 
-    // let voxels = vec![
-    //     // X
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 1 },
-    //     VoxelData { material: 1 },
-    //     VoxelData { material: 1 },
+    let voxels3 = vec![
+        // X
+        VoxelData { material: 0 },
+        VoxelData { material: 1 },
+        VoxelData { material: 1 },
+        VoxelData { material: 1 },
 
-    //     // Y
-    //     VoxelData { material: 2 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 2 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 2 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
+        // Y
+        VoxelData { material: 2 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 2 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 2 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
 
-    //     // Z
-    //     VoxelData { material: 3 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 3 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 3 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    //     VoxelData { material: 0 },
-    // ];
+        // Z
+        VoxelData { material: 3 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 3 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 3 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        VoxelData { material: 0 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+        // VoxelData { material: 1 },
+        // VoxelData { material: 2 },
+    ];
 
-    // let map = voxel_volumes.add(VoxelVolume {
-    //     palette: palette,
-    //     size: Vec3::new(4.0, 4.0, 4.0),
-    //     data: voxels
-    // });
+    let map3 = voxel_volumes.add(VoxelVolume {
+        palette: palette3,
+        size: Vec3::new(4.0, 4.0, 4.0),
+        data: voxels3
+    });
+
+    let quad = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(2.0, 2.0))));
 
     commands
         // Fullscreen quad
         .spawn(VoxelBundle {
-            mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(2.0, 2.0)))),
-            material: materials_standard.add(bevy::render::color::Color::ALICE_BLUE.into()),
-            voxel_volume: map,
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 4.0 })),
+            voxel_volume: map3,
             ..Default::default()
         })
+        // .spawn(VoxelBundle {
+        //     mesh: meshes.add(Mesh::from(shape::Cube { size: 16.0 })),
+        //     voxel_volume: map,
+        //     ..Default::default()
+        // })
+        // .spawn(VoxelBundle {
+        //     mesh: quad.clone(),
+        //     voxel_volume: map,
+        //     ..Default::default()
+        // })
+        // .spawn(VoxelBundle {
+        //     mesh: quad.clone(),
+        //     voxel_volume: map2,
+        //     transform: Transform::from_translation(Vec3::new(0.0, 0.0, 20.0)),
+        //     ..Default::default()
+        // })
         // .spawn(PbrBundle {
         //     material: materials_standard.add(bevy::render::color::Color::ALICE_BLUE.into()),
         //     transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-        //     mesh: meshes.add(Mesh::from(shape::Plane { size: 10.0 })),
+        //     mesh: meshes.add(Mesh::from(shape::Plane { size: 1000.0 })),
         //     ..Default::default()
         // })
         .spawn(Camera3dBundle {

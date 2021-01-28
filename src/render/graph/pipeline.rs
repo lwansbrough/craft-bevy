@@ -18,11 +18,11 @@ pub(crate) fn build_pipeline(shaders: &mut Assets<Shader>) -> PipelineDescriptor
     PipelineDescriptor::default_config(ShaderStages {
         vertex: shaders.add(Shader::from_glsl(
             ShaderStage::Vertex,
-            include_str!("test.vs"),
+            include_str!("test2.vs"),
         )),
         fragment: Some(shaders.add(Shader::from_glsl(
             ShaderStage::Fragment,
-            include_str!("test.fs"),
+            include_str!("test2.fs"),
         ))),
     })
     // PipelineDescriptor {

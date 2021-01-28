@@ -32,14 +32,6 @@ layout(set = 2, binding = 0) buffer VoxelVolume {
     VoxelData voxel_volume_data[];
 };
 
-// layout(set = 2, binding = 1) uniform VoxelVolume_size {
-//     vec3 voxel_volume_size;
-// };
-
-// layout(set = 2, binding = 2) uniform VoxelVolume_palette {
-//     vec4[6] voxel_volume_palette;
-// };
-
 vec3 LightPosition = vec3(0.0, 100.0, 0.0);
 vec3 SceneOffset = vec3(0.0, 0.0, 0.0);
 float FogDistance = 1000.0;
