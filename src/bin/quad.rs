@@ -320,7 +320,7 @@ fn setup(
     commands
         // Fullscreen quad
         .spawn(VoxelBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 6.0 })),
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 4.0 })),
             voxel_volume: map3,
             // transform: Transform::identity().looking_at(Vec3::new(2.0, 0.0, 2.0), Vec3::unit_z()),
             ..Default::default()
