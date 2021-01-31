@@ -238,141 +238,76 @@ fn setup(
     palette3[2] = Vec4::new(0.0, 1.0, 0.0, 1.0);
     palette3[3] = Vec4::new(0.0, 0.0, 1.0, 1.0);
 
-    let voxels3 = vec![
+    let mut voxels3 = vec![VoxelData { material: 0}; 64];
         // X
-        VoxelData { material: 0 },
-        VoxelData { material: 1 },
-        VoxelData { material: 1 },
-        VoxelData { material: 1 },
+    voxels3[0] = VoxelData { material: 0 };
+    voxels3[1] = VoxelData { material: 1 };
+    voxels3[2] = VoxelData { material: 1 };
+    voxels3[3] = VoxelData { material: 1 };
 
         // Y
-        VoxelData { material: 2 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 2 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 2 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
+    voxels3[4] = VoxelData { material: 2 };
+    voxels3[5] = VoxelData { material: 0 };
+    voxels3[6] = VoxelData { material: 0 };
+    voxels3[7] = VoxelData { material: 0 };
+    voxels3[8] = VoxelData { material: 2 };
+    voxels3[9] = VoxelData { material: 0 };
+    voxels3[10] = VoxelData { material: 0 };
+    voxels3[11] = VoxelData { material: 0 };
+    voxels3[12] = VoxelData { material: 2 };
+    voxels3[13] = VoxelData { material: 0 };
+    voxels3[14] = VoxelData { material: 0 };
+    voxels3[15] = VoxelData { material: 0 };
 
         // Z
-        VoxelData { material: 3 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 3 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 3 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        VoxelData { material: 0 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-        // VoxelData { material: 1 },
-        // VoxelData { material: 2 },
-    ];
+    voxels3[16] = VoxelData { material: 3 };
+    voxels3[17] = VoxelData { material: 0 };
+    voxels3[18] = VoxelData { material: 0 };
+    voxels3[19] = VoxelData { material: 0 };
+    voxels3[20] = VoxelData { material: 0 };
+    voxels3[21] = VoxelData { material: 0 };
+    voxels3[22] = VoxelData { material: 0 };
+    voxels3[23] = VoxelData { material: 0 };
+    voxels3[24] = VoxelData { material: 0 };
+    voxels3[25] = VoxelData { material: 0 };
+    voxels3[26] = VoxelData { material: 0 };
+    voxels3[27] = VoxelData { material: 0 };
+    voxels3[28] = VoxelData { material: 0 };
+    voxels3[29] = VoxelData { material: 0 };
+    voxels3[30] = VoxelData { material: 0 };
+    voxels3[31] = VoxelData { material: 0 };
+    voxels3[32] = VoxelData { material: 3 };
+    voxels3[33] = VoxelData { material: 0 };
+    voxels3[34] = VoxelData { material: 0 };
+    voxels3[35] = VoxelData { material: 0 };
+    voxels3[36] = VoxelData { material: 0 };
+    voxels3[37] = VoxelData { material: 0 };
+    voxels3[38] = VoxelData { material: 0 };
+    voxels3[39] = VoxelData { material: 0 };
+    voxels3[40] = VoxelData { material: 0 };
+    voxels3[41] = VoxelData { material: 0 };
+    voxels3[42] = VoxelData { material: 0 };
+    voxels3[43] = VoxelData { material: 0 };
+    voxels3[44] = VoxelData { material: 0 };
+    voxels3[45] = VoxelData { material: 0 };
+    voxels3[46] = VoxelData { material: 0 };
+    voxels3[47] = VoxelData { material: 0 };
+    voxels3[48] = VoxelData { material: 3 };
+    voxels3[49] = VoxelData { material: 0 };
+    voxels3[50] = VoxelData { material: 0 };
+    voxels3[51] = VoxelData { material: 0 };
+    voxels3[52] = VoxelData { material: 0 };
+    voxels3[53] = VoxelData { material: 0 };
+    voxels3[54] = VoxelData { material: 0 };
+    voxels3[55] = VoxelData { material: 0 };
+    voxels3[56] = VoxelData { material: 0 };
+    voxels3[57] = VoxelData { material: 0 };
+    voxels3[58] = VoxelData { material: 0 };
+    voxels3[59] = VoxelData { material: 0 };
+    voxels3[60] = VoxelData { material: 0 };
+    voxels3[61] = VoxelData { material: 0 };
+    voxels3[62] = VoxelData { material: 0 };
+    voxels3[63] = VoxelData { material: 0 };
 
     let map3 = voxel_volumes.add(VoxelVolume {
         palette: palette3,
@@ -387,6 +322,7 @@ fn setup(
         .spawn(VoxelBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 4.0 })),
             voxel_volume: map3,
+            // transform: Transform::identity().looking_at(Vec3::new(2.0, 0.0, 2.0), Vec3::unit_z()),
             ..Default::default()
         })
         // .spawn(VoxelBundle {

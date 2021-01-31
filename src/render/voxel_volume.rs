@@ -75,7 +75,7 @@ impl Default for VoxelVolume {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct VoxelData {
     pub material: u32,
 }
