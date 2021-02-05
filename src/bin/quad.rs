@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 use std::time::Duration;
 
-use bevy::{core::AsBytes, prelude::*, render::renderer::RenderResourceBinding};
+use bevy::{core::AsBytes, prelude::*, render::{mesh::Indices, pipeline::PrimitiveTopology, renderer::RenderResourceBinding}};
 use bevy::{render::renderer::{RenderResourceContext, RenderResourceBindings, BufferUsage, BufferInfo}, app::{ScheduleRunnerSettings}};
 use bevy_rapier3d::physics::{RapierPhysicsPlugin, RigidBodyHandleComponent};
 use bevy_rapier3d::rapier::dynamics::{BodyStatus, RigidBody, RigidBodyBuilder};
@@ -317,10 +317,69 @@ fn setup(
 
     let quad = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(2.0, 2.0))));
 
+    let vertices = &[
+        // Top
+        ([-2.0, -2.0, 2.0], [0., 0., 1.0], [0., 0.]),
+        ([2.0, -2.0, 2.0], [0., 0., 1.0], [1.0, 0.]),
+        ([2.0, 2.0, 2.0], [0., 0., 1.0], [1.0, 1.0]),
+        ([-2.0, 2.0, 2.0], [0., 0., 1.0], [0., 1.0]),
+        // Bottom
+        ([-2.0, 2.0, -2.0], [0., 0., 1.0], [1.0, 0.]),
+        ([2.0, 2.0, -2.0], [0., 0., 1.0], [0., 0.]),
+        ([2.0, -2.0, -2.0], [0., 0., 1.0], [0., 1.0]),
+        ([-2.0, -2.0, -2.0], [0., 0., 1.0], [1.0, 1.0]),
+        // Right
+        ([2.0, -2.0, -2.0], [1.0, 0., 0.], [0., 0.]),
+        ([2.0, 2.0, -2.0], [1.0, 0., 0.], [1.0, 0.]),
+        ([2.0, 2.0, 2.0], [1.0, 0., 0.], [1.0, 1.0]),
+        ([2.0, -2.0, 2.0], [1.0, 0., 0.], [0., 1.0]),
+        // Left
+        ([-2.0, -2.0, 2.0], [1.0, 0., 0.], [1.0, 0.]),
+        ([-2.0, 2.0, 2.0], [1.0, 0., 0.], [0., 0.]),
+        ([-2.0, 2.0, -2.0], [1.0, 0., 0.], [0., 1.0]),
+        ([-2.0, -2.0, -2.0], [1.0, 0., 0.], [1.0, 1.0]),
+        // Front
+        ([2.0, 2.0, -2.0], [0., 1.0, 0.], [1.0, 0.]),
+        ([-2.0, 2.0, -2.0], [0., 1.0, 0.], [0., 0.]),
+        ([-2.0, 2.0, 2.0], [0., 1.0, 0.], [0., 1.0]),
+        ([2.0, 2.0, 2.0], [0., 1.0, 0.], [1.0, 1.0]),
+        // Back
+        ([2.0, -2.0, 2.0], [0., 1.0, 0.], [0., 0.]),
+        ([-2.0, -2.0, 2.0], [0., 1.0, 0.], [1.0, 0.]),
+        ([-2.0, -2.0, -2.0], [0., 1.0, 0.], [1.0, 1.0]),
+        ([2.0, -2.0, -2.0], [0., 1.0, 0.], [0., 1.0]),
+    ];
+
+    let mut positions = Vec::with_capacity(24);
+    let mut normals = Vec::with_capacity(24);
+    let mut uvs = Vec::with_capacity(24);
+
+    for (position, normal, uv) in vertices.iter() {
+        positions.push(*position);
+        normals.push(*normal);
+        uvs.push(*uv);
+    }
+
+    let indices = Indices::U32(vec![
+        0, 1, 2, 2, 3, 0, // top
+        4, 5, 6, 6, 7, 4, // bottom
+        8, 9, 10, 10, 11, 8, // right
+        12, 13, 14, 14, 15, 12, // left
+        16, 17, 18, 18, 19, 16, // front
+        20, 21, 22, 22, 23, 20, // back
+    ]);
+
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    mesh.set_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    mesh.set_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+    mesh.set_indices(Some(indices));
+
     commands
         // Fullscreen quad
         .spawn(VoxelBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 4.0 })),
+            // mesh: meshes.add(mesh),
             voxel_volume: map3,
             // transform: Transform::identity().looking_at(Vec3::new(2.0, 0.0, 2.0), Vec3::unit_z()),
             ..Default::default()

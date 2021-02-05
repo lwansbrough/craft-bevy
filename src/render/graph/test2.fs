@@ -66,7 +66,7 @@ void main(void) {
     vec3 CameraPosition = (Model * vec4(vec3(InverseView[3]), 0.)).xyz;
 
     vec3 RayDirection = normalize(v_Position - CameraPosition);
-    vec3 RayPosition = v_Position;
+    vec3 RayPosition = v_Position + 0.00001 * RayDirection;
 	vec3 mapPos = floor(RayPosition);
 
 	vec3 deltaDist = abs(vec3(length(RayDirection)) / RayDirection);
@@ -80,13 +80,11 @@ void main(void) {
     vec4 color;
 
 	for (int i = 0; i < MAX_RAY_STEPS; i++) {
-        if (any(greaterThanEqual(mapPos, (voxel_volume_size / 2.0) - 0.00001))) {
-            mask = bvec3(false, false, false);
+        if (any(greaterThanEqual(mapPos, voxel_volume_size / 2.0))) {
             color = vec4(0.0, 0.0, 0.0, 0.0);
             break;
         }
-        if (any(lessThan(mapPos, (-voxel_volume_size / 2.0) - 0.00001))) {
-            mask = bvec3(false, false, false);
+        if (any(lessThan(mapPos, -voxel_volume_size / 2.0))) {
             color = vec4(0.0, 0.0, 0.0, 0.0);
             break;
         }
