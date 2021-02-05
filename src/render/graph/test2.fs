@@ -7,8 +7,6 @@
 layout(location = 0) in vec3 v_Position;
 layout(location = 1) in vec3 v_Normal;
 layout(location = 2) in vec3 v_Uv;
-layout(location = 3) in vec4 v_Near;
-layout(location = 4) in vec4 v_Far;
 
 layout(location = 0) out vec4 o_Target;
 
@@ -64,14 +62,11 @@ vec4 getVoxel(vec3 Position) {
 }
 
 void main(void) {
+    mat4 InverseView = inverse(View);
+    vec3 CameraPosition = (Model * vec4(vec3(InverseView[3]), 0.)).xyz;
 
-    vec3 RayOrigin = v_Near.xyz;
-    vec3 RayDirection = v_Far.xyz - v_Near.xyz;
-
-    mat4 InverseView = inverse(View) / 2.0;
-    vec3 CameraPosition = vec3(InverseView[3]);
-    vec3 RayPosition = (Model * vec4(v_Position, 1.0)).xyz;
-
+    vec3 RayDirection = normalize(v_Position - CameraPosition);
+    vec3 RayPosition = v_Position;
 	vec3 mapPos = floor(RayPosition);
 
 	vec3 deltaDist = abs(vec3(length(RayDirection)) / RayDirection);
@@ -85,12 +80,14 @@ void main(void) {
     vec4 color;
 
 	for (int i = 0; i < MAX_RAY_STEPS; i++) {
-        if (any(greaterThanEqual(mapPos, voxel_volume_size / 2.0))) {
+        if (any(greaterThanEqual(mapPos, (voxel_volume_size / 2.0) - 0.00001))) {
             mask = bvec3(false, false, false);
+            color = vec4(0.0, 0.0, 0.0, 0.0);
             break;
         }
-        if (any(lessThan(mapPos, -(voxel_volume_size / 2.0)))) {
+        if (any(lessThan(mapPos, (-voxel_volume_size / 2.0) - 0.00001))) {
             mask = bvec3(false, false, false);
+            color = vec4(0.0, 0.0, 0.0, 0.0);
             break;
         }
 
@@ -113,16 +110,6 @@ void main(void) {
 	if (mask.z) {
 		color *= vec4(vec3(0.75), 1.0);
 	}
-
-    // if (mask.x) {
-	// 	color = vec4(1.0, 0.0, 0.0, 1.0);
-	// }
-	// if (mask.y) {
-	// 	color = vec4(0.0, 1.0, 0.0, 1.0);
-	// }
-	// if (mask.z) {
-	// 	color = vec4(0.0, 0.0, 1.0, 1.0);
-	// }
 
 	o_Target = color;
 }
