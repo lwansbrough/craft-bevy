@@ -16,40 +16,6 @@ use isosurface::source::CentralDifference;
 
 use crate::{VoxelData, VoxelVolume, utilities::Gradient};
 
-pub struct Terrain<'a> {
-    chunk_size: i32,
-    x: i32,
-    y: i32,
-    z: i32,
-    generator: &'a Select<'a, [f64; 3]>,
-    // generator: Perlin
-}
-
-impl<'a> Terrain<'a> {
-    pub fn new(generator: &'a Select<'a, [f64; 3]>, chunk_size: i32, x: i32, y: i32, z: i32) -> Terrain<'a> {
-        Terrain {
-            generator,
-            chunk_size,
-            x,
-            y,
-            z
-        }
-    }
-}
-
-impl<'a> Source for Terrain<'a> {
-    fn sample(&self, x: f32, y: f32, z: f32) -> f32 {
-        // println!("x: {}", (self.x as f32 + x as f32));
-        // println!("y: {}", (self.y as f32 + y as f32));
-        // println!("z: {}", (self.z as f32 + z as f32));
-        self.generator.get([
-            (self.x as f32 + x as f32) as f64,
-            (self.y as f32 + y as f32) as f64,
-            (self.z as f32 + z as f32) as f64,
-        ]) as f32
-    }
-}
-
 pub struct WorldGenerator {
     chunk_size: usize
 }
@@ -171,18 +137,26 @@ impl WorldGenerator {
         palette[5] = Vec4::new(0.502, 0.502, 0.502, 1.0); // Grey
         palette[6] = Vec4::new(1.0, 0.98, 0.98, 1.0);     // White
 
+        let scale = 1.0/32.0;
+
         for z in 0..self.chunk_size as u32 {
             for y in 0..self.chunk_size as u32 {
                 for x in 0..self.chunk_size as u32 {
-                    let y_noise = generator.get([x as f64 / self.chunk_size as f64 + chunk_x as f64, y as f64 / self.chunk_size as f64 + chunk_y as f64, z as f64 / self.chunk_size as f64 + chunk_z as f64]);
+                    let coord = [
+                        scale * ((chunk_x as f64 * self.chunk_size as f64) + x as f64),
+                        scale * ((chunk_y as f64 * self.chunk_size as f64) + y as f64),
+                        scale * ((chunk_z as f64 * self.chunk_size as f64) + z as f64)
+                    ];
+
+                    let value = generator.get(coord);
     
-                    if y_noise == 0.0 {
+                    if value == 0.0 {
                         voxels.push(VoxelData { material: 0 });
                         continue;
                     }
 
-                    let global_y = chunk_y as u32 * self.chunk_size as u32 + x as u32;
-    
+                    let global_y = chunk_y as u32 * self.chunk_size as u32 + y as u32;
+
                     voxels.push(VoxelData {
                         material: match global_y {
                             y if y < 25 => 1, // Blue

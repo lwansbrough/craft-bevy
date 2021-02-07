@@ -32,17 +32,6 @@ pub fn chunk_loading_system(
                 world_generator.chunk_size() as f32 / VOXELS_PER_METER * z as f32
             );
             commands.spawn(voxel_bundle);
-
-            // commands.spawn(PbrBundle {
-            //     material: materials_standard.add(bevy::render::color::Color::from([(x as f32 + 1.0) / 2.0, (y as f32 + 1.0) / 2.0, (z as f32 + 1.0) / 2.0, 1.0]).into()),
-            //     transform: Transform::from_translation(Vec3::new(
-            //         world_generator.chunk_size() as f32 / VOXELS_PER_METER * x as f32,
-            //         world_generator.chunk_size() as f32 / VOXELS_PER_METER * y as f32,
-            //         world_generator.chunk_size() as f32 / VOXELS_PER_METER * z as f32
-            //     )),
-            //     mesh: meshes.add(Mesh::from(shape::Cube { size: world_generator.chunk_size() as f32 / VOXELS_PER_METER })),
-            //     ..Default::default()
-            // });
         }
     }
 }
