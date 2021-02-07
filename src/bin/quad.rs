@@ -30,9 +30,12 @@ fn main() {
         .add_plugin(VoxelRenderPlugin)
         .add_plugin(FlyCameraPlugin)
         .add_asset::<VoxelVolume>()
+        .add_resource(WorldGenerator::new(32))
+        .add_resource(WorldData::new())
         .init_resource::<WindowResizeEventListenerState>()
         .add_startup_system(setup.system())
         .add_system(window_resolution_system.system())
+        .add_system(chunk_loading_system.system())
         .run();
 }
 
@@ -375,18 +378,24 @@ fn setup(
     mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
     mesh.set_indices(Some(indices));
 
+    // let mut t = Transform::from_scale(Vec3::new(16.0, 16.0, 16.0));
+    let mut t = Transform::from_scale(Vec3::new(1.0, 1.0, 1.0));
+    t.translation = Vec3::new(0.5, 0.0, 0.0);
+
+    // let t = Transform::from_translation(Vec3::new(-16.0, 0.0, 0.0));
+
     commands
         // Fullscreen quad
-        .spawn(VoxelBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 4.0 })),
-            // mesh: meshes.add(mesh),
-            voxel_volume: map3,
-            // transform: Transform::identity().looking_at(Vec3::new(2.0, 0.0, 2.0), Vec3::unit_z()),
-            ..Default::default()
-        })
+        // .spawn(VoxelBundle::new(&mut meshes, &mut voxel_volumes, map3)
         // .spawn(VoxelBundle {
-        //     mesh: meshes.add(Mesh::from(shape::Cube { size: 16.0 })),
+        //     mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
         //     voxel_volume: map,
+        //     transform: t,
+        //     ..Default::default()
+        // })
+        // .spawn(VoxelBundle {
+        //     mesh: meshes.add(Mesh::from(shape::Cube { size: 0.25 })),
+        //     voxel_volume: map3,
         //     ..Default::default()
         // })
         // .spawn(VoxelBundle {
@@ -400,12 +409,19 @@ fn setup(
         //     transform: Transform::from_translation(Vec3::new(0.0, 0.0, 20.0)),
         //     ..Default::default()
         // })
-        // .spawn(PbrBundle {
-        //     material: materials_standard.add(bevy::render::color::Color::ALICE_BLUE.into()),
-        //     transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-        //     mesh: meshes.add(Mesh::from(shape::Plane { size: 1000.0 })),
-        //     ..Default::default()
-        // })
+        .spawn(PbrBundle {
+            material: materials_standard.add(bevy::render::color::Color::GREEN.into()),
+            transform: Transform::from_translation(Vec3::new(-3.0, 0.0, 0.0)),
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            ..Default::default()
+        })
+        .spawn(PbrBundle {
+            material: materials_standard.add(bevy::render::color::Color::RED.into()),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
+            ..Default::default()
+        })
+        .with(LocalPlayerBody {})
         .spawn(Camera3dBundle {
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 20.0)),
             ..Default::default()

@@ -1,38 +1,48 @@
 use bevy::{
     prelude::*,
 };
-use crate::resources::*;
+use crate::{LocalPlayerBody, VOXELS_PER_METER, VoxelBundle, VoxelVolume, resources::*};
 
 
 /// This system prints out all mouse events as they come in
 pub fn chunk_loading_system(
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials_standard: ResMut<Assets<StandardMaterial>>,
+    mut voxel_volumes: ResMut<Assets<VoxelVolume>>,
     world_generator: Res<WorldGenerator>,
-    // mut player_body_query: Query<(&LocalPlayerBody, &mut Translation)>,
+    mut world_data: ResMut<WorldData>,
+    mut player_body_query: Query<(&LocalPlayerBody, &mut Transform)>,
 ) {
-    // commands.spawn(PbrComponents {
-    //     mesh: meshes.add(world_generator.generate(0, 0, 0)),
-    //     material: materials.add(Color::rgb(0.2, 0.1, 0.1).into()),
-    //     translation: Translation::new(0.0, 0.0, 0.0),
-    //     ..Default::default()
-    // });
+    for (_, transform) in player_body_query.iter_mut() {
+        let new_coords = world_data.move_to([
+            transform.translation.x.floor() as i32,
+            transform.translation.y.floor() as i32,
+            transform.translation.z.floor() as i32
+        ]);
 
-    // layer below
+        for [x, y, z] in new_coords {
+            println!("{:?}, {:?}, {:?}", x, y, z);
 
-    let world_chunk_size = 5;
+            let voxel_volume = world_generator.generate(x, y, z);
+            let mut voxel_bundle = VoxelBundle::new(&mut meshes, &mut voxel_volumes, voxel_volume);
+            voxel_bundle.transform.translation = Vec3::new(
+                world_generator.chunk_size() as f32 / VOXELS_PER_METER * x as f32,
+                world_generator.chunk_size() as f32 / VOXELS_PER_METER * y as f32,
+                world_generator.chunk_size() as f32 / VOXELS_PER_METER * z as f32
+            );
+            commands.spawn(voxel_bundle);
 
-    for x in 0..world_chunk_size {
-        for y in 0..world_chunk_size {
-            for z in 0..world_chunk_size {
-                commands.spawn(PbrBundle {
-                    mesh: meshes.add(world_generator.generate(x, y, z)),
-                    material: materials.add(Color::rgb(1.0, 0.1, 0.1).into()),
-                    transform: Transform::from_translation(Vec3::new((16 * x) as f32, (16 * y) as f32, (16 * z) as f32)),
-                    ..Default::default()
-                });
-            }
+            // commands.spawn(PbrBundle {
+            //     material: materials_standard.add(bevy::render::color::Color::from([(x as f32 + 1.0) / 2.0, (y as f32 + 1.0) / 2.0, (z as f32 + 1.0) / 2.0, 1.0]).into()),
+            //     transform: Transform::from_translation(Vec3::new(
+            //         world_generator.chunk_size() as f32 / VOXELS_PER_METER * x as f32,
+            //         world_generator.chunk_size() as f32 / VOXELS_PER_METER * y as f32,
+            //         world_generator.chunk_size() as f32 / VOXELS_PER_METER * z as f32
+            //     )),
+            //     mesh: meshes.add(Mesh::from(shape::Cube { size: world_generator.chunk_size() as f32 / VOXELS_PER_METER })),
+            //     ..Default::default()
+            // });
         }
     }
 }

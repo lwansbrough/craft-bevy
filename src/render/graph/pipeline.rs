@@ -18,17 +18,17 @@ pub(crate) fn build_pipeline(shaders: &mut Assets<Shader>) -> PipelineDescriptor
     PipelineDescriptor::default_config(ShaderStages {
         vertex: shaders.add(Shader::from_glsl(
             ShaderStage::Vertex,
-            include_str!("test2.vs"),
+            include_str!("voxel.vs"),
         )),
         fragment: Some(shaders.add(Shader::from_glsl(
             ShaderStage::Fragment,
-            include_str!("test2.fs"),
+            include_str!("voxel.fs"),
         ))),
     })
     // PipelineDescriptor {
     //     rasterization_state: Some(RasterizationStateDescriptor {
     //         front_face: FrontFace::Ccw,
-    //         cull_mode: CullMode::Back,
+    //         cull_mode: CullMode::None,
     //         depth_bias: 0,
     //         depth_bias_slope_scale: 0.0,
     //         depth_bias_clamp: 0.0,
@@ -62,11 +62,11 @@ pub(crate) fn build_pipeline(shaders: &mut Assets<Shader>) -> PipelineDescriptor
     //     ..PipelineDescriptor::new(ShaderStages {
     //         vertex: shaders.add(Shader::from_glsl(
     //             ShaderStage::Vertex,
-    //             include_str!("test.vs"),
+    //             include_str!("voxel.vs"),
     //         )),
     //         fragment: Some(shaders.add(Shader::from_glsl(
     //             ShaderStage::Fragment,
-    //             include_str!("test.fs"),
+    //             include_str!("voxel.fs"),
     //         ))),
     //     })
     // }

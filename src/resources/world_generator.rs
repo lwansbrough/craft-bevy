@@ -14,7 +14,7 @@ use isosurface::source::HermiteSource;
 use isosurface::marching_cubes::MarchingCubes;
 use isosurface::source::CentralDifference;
 
-use crate::utilities::Gradient;
+use crate::{VoxelData, VoxelVolume, utilities::Gradient};
 
 pub struct Terrain<'a> {
     chunk_size: i32,
@@ -63,7 +63,11 @@ impl WorldGenerator {
         }
     }
 
-    pub fn generate(&self, chunk_x: i32, chunk_y: i32, chunk_z: i32) -> Mesh {
+    pub fn chunk_size(&self) -> usize {
+        self.chunk_size
+    }
+
+    pub fn generate(&self, chunk_x: i32, chunk_y: i32, chunk_z: i32) -> VoxelVolume {
         let ground_gradient = Gradient::new()
             .set_x_start(0.0)
             .set_y_stop(1.0);
@@ -158,33 +162,46 @@ impl WorldGenerator {
         let source2 = Constant::new(1.0);
         let generator = Select::new(&source1, &source2, &highland_lowland_select_cache);
 
-        let terrain = CentralDifference::new_with_epsilon(Terrain::new(&generator, self.chunk_size as i32, chunk_x, chunk_y, chunk_z), 0.1);
+        let mut voxels = Vec::with_capacity(self.chunk_size * self.chunk_size * self.chunk_size);
+        let mut palette = vec![Vec4::zero(); 255];
+        palette[1] = Vec4::new(0.086, 0.651, 0.780, 1.0);  // Blue
+        palette[2] = Vec4::new(0.900, 0.894, 0.737, 1.0); // Yellow
+        palette[3] = Vec4::new(0.196, 0.659, 0.321, 1.0); // Green
+        palette[4] = Vec4::new(0.545, 0.271, 0.075, 1.0); // Brown
+        palette[5] = Vec4::new(0.502, 0.502, 0.502, 1.0); // Grey
+        palette[6] = Vec4::new(1.0, 0.98, 0.98, 1.0);     // White
 
-        let mut vertices = vec![];
-        let mut indices = vec![];
-        let mut normals = vec![];
+        for z in 0..self.chunk_size as u32 {
+            for y in 0..self.chunk_size as u32 {
+                for x in 0..self.chunk_size as u32 {
+                    let y_noise = generator.get([x as f64 / self.chunk_size as f64 + chunk_x as f64, y as f64 / self.chunk_size as f64 + chunk_y as f64, z as f64 / self.chunk_size as f64 + chunk_z as f64]);
+    
+                    if y_noise == 0.0 {
+                        voxels.push(VoxelData { material: 0 });
+                        continue;
+                    }
 
-        let mut marching_cubes = MarchingCubes::new(self.chunk_size);
+                    let global_y = chunk_y as u32 * self.chunk_size as u32 + x as u32;
+    
+                    voxels.push(VoxelData {
+                        material: match global_y {
+                            y if y < 25 => 1, // Blue
+                            y if y < 27 => 2, // Yellow
+                            y if y < 35 => 3, // Green
+                            y if y < 50 => 4, // Brown
+                            y if y < 70 => 5, // Grey
+                            _ => 6,           // White
+                        },
+                    });
+                }
+                
+            }
+        }
 
-        marching_cubes.extract_with(
-            &terrain,
-            |v: isosurface::math::Vec3| {
-                let n = terrain.sample_normal(v.x, v.y, v.z);
-                // if n != isosurface::math::Vec3::zero() {
-                //     println!("{:?}", n);
-                // }
-                vertices.push([v.x, v.y, v.z]);
-                normals.push([n.x, n.y, n.z]);
-            },
-            &mut indices
-        );
-
-        // indices.reverse();
-
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-        mesh.set_attribute(Mesh::ATTRIBUTE_POSITION, VertexAttributeValues::Float3(vertices));
-        mesh.set_attribute(Mesh::ATTRIBUTE_NORMAL, VertexAttributeValues::Float3(normals));
-        mesh.set_indices(Some(Indices::U32(indices)));
-        mesh
+        VoxelVolume {
+            data: voxels,
+            palette,
+            size: Vec3::new(self.chunk_size as f32, self.chunk_size as f32, self.chunk_size as f32)
+        }
     }
 }

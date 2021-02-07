@@ -1,4 +1,4 @@
-use bevy::{ecs::{Bundle, ResMut}, math::Vec2, prelude::{Assets, Draw, GlobalTransform, Handle, Mesh, RenderPipelines, StandardMaterial, Transform, shape::{self, Quad}}, render::{prelude::Visible, mesh::VertexAttributeValues, pipeline::{PrimitiveTopology, RenderPipeline}, render_graph::base::MainPass}};
+use bevy::{ecs::{Bundle, ResMut}, math::{Vec2, Vec3}, prelude::{Assets, Draw, GlobalTransform, Handle, Mesh, RenderPipelines, StandardMaterial, Transform, shape::{self, Quad}}, render::{prelude::Visible, mesh::VertexAttributeValues, pipeline::{PrimitiveTopology, RenderPipeline}, render_graph::base::MainPass}};
 
 use crate::render::material::VoxelMaterial;
 use crate::render::VoxelVolume;
@@ -14,6 +14,29 @@ pub struct VoxelBundle {
     pub render_pipelines: RenderPipelines,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
+}
+
+pub const VOXELS_PER_METER: f32 = 16.0;
+
+impl VoxelBundle {
+    pub fn new(meshes: &mut ResMut<Assets<Mesh>>, voxel_volumes: &mut ResMut<Assets<VoxelVolume>>, voxel_volume: VoxelVolume) -> VoxelBundle {
+        let size = Vec3::new(
+            voxel_volume.size.x / VOXELS_PER_METER,
+            voxel_volume.size.y / VOXELS_PER_METER,
+            voxel_volume.size.z / VOXELS_PER_METER
+        );
+
+        let mesh_handle = meshes.add(Mesh::from(shape::Box::new(size.x, size.y, size.z)));
+        // let mesh_handle = meshes.add(Mesh::from(shape::Cube { size: 2.0 }));
+        let voxel_volume_handle = voxel_volumes.add(voxel_volume);
+
+        Self {
+            mesh: mesh_handle,
+            voxel_volume: voxel_volume_handle,
+            // transform: Transform::from_scale(Vec3::new(1.0, 1.0, 1.0)),
+            ..Default::default()
+        }
+    }
 }
 
 impl Default for VoxelBundle {
