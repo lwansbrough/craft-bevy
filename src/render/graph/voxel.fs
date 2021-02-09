@@ -33,13 +33,13 @@ struct VoxelData {
     uint material;
 };
 layout(set = 3, binding = 0) buffer VoxelVolume {
-    vec4 voxel_volume_palette[255];
+    vec4 voxel_volume_palette[256];
     vec3 voxel_volume_size;
     VoxelData voxel_volume_data[];
 };
 
 
-const int MAX_RAY_STEPS = 256;
+const int MAX_RAY_STEPS = 64;
 
 // float sdSphere(vec3 p, float d) { return length(p) - d; } 
 
@@ -58,12 +58,12 @@ const int MAX_RAY_STEPS = 256;
 // }
 
 vec4 getVoxel(vec3 Position) {
-	uint material = voxel_volume_data[uint(Position.z * voxel_volume_size.x * voxel_volume_size.y + Position.y * voxel_volume_size.x + Position.x)].material;
+    uint material = voxel_volume_data[uint(Position.x + voxel_volume_size.x * (Position.y + voxel_volume_size.z * Position.z))].material;
     return voxel_volume_palette[material];
 }
 
 void main(void) {
-    vec3 vPosition = v_Position * 16.0;
+    vec3 vPosition = ((v_Position + 1.0) / 2.0) * voxel_volume_size;
 
     mat4 InverseView = inverse(View);
     vec3 CameraPosition = (Model * vec4(vec3(InverseView[3]), 0.)).xyz;
@@ -83,11 +83,11 @@ void main(void) {
     vec4 color;
 
 	for (int i = 0; i < MAX_RAY_STEPS; i++) {
-        if (any(greaterThanEqual(mapPos, voxel_volume_size / 2.0))) {
+        if (any(greaterThanEqual(mapPos, voxel_volume_size))) {
             color = vec4(0.0, 0.0, 0.0, 0.0);
             break;
         }
-        if (any(lessThan(mapPos, -voxel_volume_size / 2.0))) {
+        if (any(lessThan(mapPos, vec3(0.0)))) {
             color = vec4(0.0, 0.0, 0.0, 0.0);
             break;
         }

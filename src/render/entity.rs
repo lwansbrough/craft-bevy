@@ -27,7 +27,6 @@ impl VoxelBundle {
         );
 
         let mesh_handle = meshes.add(Mesh::from(shape::Box::new(size.x, size.y, size.z)));
-        // let mesh_handle = meshes.add(Mesh::from(shape::Cube { size: 2.0 }));
         let voxel_volume_handle = voxel_volumes.add(voxel_volume);
 
         Self {

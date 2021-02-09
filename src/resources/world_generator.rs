@@ -129,7 +129,7 @@ impl WorldGenerator {
         let generator = Select::new(&source1, &source2, &highland_lowland_select_cache);
 
         let mut voxels = Vec::with_capacity(self.chunk_size * self.chunk_size * self.chunk_size);
-        let mut palette = vec![Vec4::zero(); 255];
+        let mut palette = vec![Vec4::zero(); 256];
         palette[1] = Vec4::new(0.086, 0.651, 0.780, 1.0);  // Blue
         palette[2] = Vec4::new(0.900, 0.894, 0.737, 1.0); // Yellow
         palette[3] = Vec4::new(0.196, 0.659, 0.321, 1.0); // Green
@@ -137,36 +137,59 @@ impl WorldGenerator {
         palette[5] = Vec4::new(0.502, 0.502, 0.502, 1.0); // Grey
         palette[6] = Vec4::new(1.0, 0.98, 0.98, 1.0);     // White
 
-        let scale = 1.0/32.0;
+        let scale = 1.0/self.chunk_size as f64;
 
-        for z in 0..self.chunk_size as u32 {
-            for y in 0..self.chunk_size as u32 {
-                for x in 0..self.chunk_size as u32 {
-                    let coord = [
-                        scale * ((chunk_x as f64 * self.chunk_size as f64) + x as f64),
-                        scale * ((chunk_y as f64 * self.chunk_size as f64) + y as f64),
-                        scale * ((chunk_z as f64 * self.chunk_size as f64) + z as f64)
-                    ];
+        // for z in 0..self.chunk_size as u32 {
+        //     for y in 0..self.chunk_size as u32 {
+        //         for x in 0..self.chunk_size as u32 {
+        //             let coord = [
+        //                 scale * ((chunk_x as f64 * self.chunk_size as f64) + x as f64),
+        //                 scale * ((chunk_y as f64 * self.chunk_size as f64) + y as f64),
+        //                 scale * ((chunk_z as f64 * self.chunk_size as f64) + z as f64)
+        //             ];
 
-                    let value = generator.get(coord);
+        //             let value = generator.get(coord);
     
-                    if value == 0.0 {
+        //             if value == 0.0 {
+        //                 voxels.push(VoxelData { material: 0 });
+        //                 continue;
+        //             }
+
+        //             let global_y = chunk_y as u32 * self.chunk_size as u32 + y as u32;
+
+        //             voxels.push(VoxelData {
+        //                 material: match global_y {
+        //                     y if y < 25 => 1, // Blue
+        //                     y if y < 27 => 2, // Yellow
+        //                     y if y < 35 => 3, // Green
+        //                     y if y < 50 => 4, // Brown
+        //                     y if y < 70 => 5, // Grey
+        //                     _ => 6,           // White
+        //                 },
+        //             });
+        //         }
+                
+        //     }
+        // }
+
+        for y in 0..self.chunk_size as u32 {
+            for z in 0..self.chunk_size as u32 {
+                for x in 0..self.chunk_size as u32 {
+                    if x == 0 && y == 0 && z == 0 {
+                        voxels.push(VoxelData { material: 2 });
+                    } else if x == 0 && z == 0 {
+                        voxels.push(VoxelData { material: 3 });
+                    } else if x == 0 && y == 0 {
+                        voxels.push(VoxelData { material: 1 });
+                    } else if y == 0 && z == 0 {
+                        if x >= 16 {
+                            voxels.push(VoxelData { material: 4 });
+                        } else {
+                            voxels.push(VoxelData { material: 5 });
+                        }
+                    } else {
                         voxels.push(VoxelData { material: 0 });
-                        continue;
                     }
-
-                    let global_y = chunk_y as u32 * self.chunk_size as u32 + y as u32;
-
-                    voxels.push(VoxelData {
-                        material: match global_y {
-                            y if y < 25 => 1, // Blue
-                            y if y < 27 => 2, // Yellow
-                            y if y < 35 => 3, // Green
-                            y if y < 50 => 4, // Brown
-                            y if y < 70 => 5, // Grey
-                            _ => 6,           // White
-                        },
-                    });
                 }
                 
             }

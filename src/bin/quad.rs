@@ -30,12 +30,12 @@ fn main() {
         .add_plugin(VoxelRenderPlugin)
         .add_plugin(FlyCameraPlugin)
         .add_asset::<VoxelVolume>()
-        .add_resource(WorldGenerator::new(32))
+        .add_resource(WorldGenerator::new(64))
         .add_resource(WorldData::new())
         .init_resource::<WindowResizeEventListenerState>()
         .add_startup_system(setup.system())
         .add_system(window_resolution_system.system())
-        .add_system(chunk_loading_system.system())
+        .add_startup_system(chunk_loading_system.system())
         .run();
 }
 
@@ -55,15 +55,9 @@ fn setup(
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             ..Default::default()
         })
-        .spawn(PbrBundle {
-            material: materials_standard.add(bevy::render::color::Color::RED.into()),
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
-            ..Default::default()
-        })
         .with(LocalPlayerBody {})
         .spawn(Camera3dBundle {
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 20.0)),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 50.0)),
             ..Default::default()
         })
         .with(FlyCamera::default());
