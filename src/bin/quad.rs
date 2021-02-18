@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 use std::time::Duration;
 
-use bevy::{core::AsBytes, prelude::*, render::{mesh::Indices, pipeline::PrimitiveTopology, renderer::RenderResourceBinding}};
+use bevy::{core::AsBytes, prelude::*, render::{camera::{Camera, CameraProjection}, mesh::Indices, pipeline::PrimitiveTopology, renderer::RenderResourceBinding}, window::WindowId};
 use bevy::{render::renderer::{RenderResourceContext, RenderResourceBindings, BufferUsage, BufferInfo}, app::{ScheduleRunnerSettings}};
 use bevy_rapier3d::physics::{RapierPhysicsPlugin, RigidBodyHandleComponent};
 use bevy_rapier3d::rapier::dynamics::{BodyStatus, RigidBody, RigidBodyBuilder};
@@ -46,9 +46,23 @@ fn setup(
     mut materials_standard: ResMut<Assets<StandardMaterial>>,
     mut voxel_volumes: ResMut<Assets<VoxelVolume>>,
 ) {
+    let texture_handle = RENDER_TEXTURE_HANDLE.typed();
     
     commands
         // Fullscreen quad
+        .spawn(PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(2.0, 2.0)))),
+            material: materials_standard.add(StandardMaterial {
+                albedo_texture: Some(texture_handle.clone()),
+                shaded: true,
+                ..Default::default()
+            }),
+            visible: Visible {
+                is_transparent: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
         .spawn(PbrBundle {
             material: materials_standard.add(bevy::render::color::Color::GREEN.into()),
             transform: Transform::from_translation(Vec3::new(-3.0, 0.0, 0.0)),
@@ -61,4 +75,22 @@ fn setup(
             ..Default::default()
         })
         .with(FlyCamera::default());
+
+    let mut gbuffer_camera = Camera3dBundle {
+        camera: Camera {
+            name: Some(node::GBUFFER_CAMERA.to_string()),
+            window: WindowId::new(), // otherwise it will use main window size / aspect for calculation of projection matrix
+            ..Default::default()
+        },
+        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 15.0))
+            .looking_at(Vec3::default(), Vec3::unit_y()),
+        ..Default::default()
+    };
+    gbuffer_camera.camera.window = WindowId::new();
+    let camera_projection = &mut gbuffer_camera.perspective_projection;
+    camera_projection.update(512.0, 512.0);
+    gbuffer_camera.camera.projection_matrix = camera_projection.get_projection_matrix();
+    gbuffer_camera.camera.depth_calculation = camera_projection.depth_calculation();
+
+    commands.spawn(gbuffer_camera);
 }

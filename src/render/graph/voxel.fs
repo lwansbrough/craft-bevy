@@ -38,7 +38,7 @@ layout(set = 3, binding = 0) buffer VoxelVolume {
 };
 
 
-const int MAX_RAY_STEPS = 64;
+const int MAX_RAY_STEPS = 2048;
 
 // Get the voxel material at a position within the volume, returns a clear colour if the space is empty.
 vec4 getVoxel(vec3 Position) {
@@ -50,62 +50,33 @@ void main(void) {
     // Set the scale for the voxels
     vec3 scale = voxel_volume_size / 16.0;
 
-    mat4 InverseView = inverse(View);
-    mat4 CameraToModel = Model * InverseView;
+    // mat4 InverseView = inverse(View);
+    // mat4 CameraToModel = Model * InverseView;
+    mat4 CameraToModel = inverse(Model) * inverse(View);
 
     // vec3 Camera_RayOrigin = vec3(InverseView[3]);
     vec3 Camera_RayOrigin = vec3(0.0, 0.0, 0.0);
-
     vec3 Model_BackFacePosition = v_Position;
     vec3 Model_RayOrigin = (CameraToModel * vec4(Camera_RayOrigin, 1.0)).xyz;
     vec3 Model_RayDirection = normalize(Model_BackFacePosition - Model_RayOrigin);
 
-    vec3 Model_XN = vec3(-sign(Model_RayOrigin.x), 0.0, 0.0);
-    vec3 Model_YN = vec3(0.0, -sign(Model_RayOrigin.y), 0.0);
-    vec3 Model_ZN = vec3(0.0, 0.0, -sign(Model_RayOrigin.z));
-
-    float Xd = -0.5 * scale.x;
-    float Yd = -0.5 * scale.x;
-    float Zd = -0.5 * scale.x;
-
-    float Xt = -(dot(Model_RayOrigin, Model_XN) - Xd) / dot(Model_RayDirection, Model_XN);
-    vec3 Model_PX = Model_RayOrigin + Xt * Model_RayDirection;
-
-    float Yt = -(dot(Model_RayOrigin, Model_YN) - Yd) / dot(Model_RayDirection, Model_YN);
-    vec3 Model_PY = Model_RayOrigin + Yt * Model_RayDirection;
-
-    float Zt = -(dot(Model_RayOrigin, Model_ZN) - Zd) / dot(Model_RayDirection, Model_ZN);
-    vec3 Model_PZ = Model_RayOrigin + Zt * Model_RayDirection;
-
-    float Check_X = Xt * sign(floor(abs(Model_RayOrigin.x) * 2.0));
-    float Check_Y = Yt * sign(floor(abs(Model_RayOrigin.y) * 2.0));
-    float Check_Z = Zt * sign(floor(abs(Model_RayOrigin.z) * 2.0));
-
-    vec3 best = Model_BackFacePosition;
-    if (Check_X > 0.0 || Check_Y > 0.0 || Check_Z > 0.0)
-    {
-        best = Model_PX;
-        float best_length = Check_X;
-        if (Check_Y > best_length)
-        {
-            best = Model_PY;
-            best_length = Check_Y;
-        }
-        if (Check_Z > best_length)
-        {
-            best = Model_PZ;
-        }
-    }
-
     vec3 center_offset = vec3(0.5, 0.5, 0.5) * scale;
+
+    vec3 Model_N = -sign(Model_RayOrigin);
+    vec3 d = -center_offset;
+    vec3 t = -(Model_RayOrigin * Model_N - d) / (Model_RayDirection * Model_N);
+    vec3 f = sign(floor(abs(Model_RayOrigin) * 2.0 / scale));
+    float best_t = max(max(t.x * f.x, t.y * f.y), t.z * f.z);
+    vec3 best = Model_BackFacePosition;
+    if (f.x > 0.0 || f.y > 0.0 || f.z > 0.0)
+    {
+        best = Model_RayOrigin + best_t * Model_RayDirection;
+    }
 
     vec3 Model_FrontFacePosition = (best + center_offset);
 
     // Convert the local space position into voxel space, ie. [-1, 1] -> [0, 32]
     vec3 ScaledPosition = Model_FrontFacePosition * voxel_volume_size / scale;
-
-    o_Target = vec4(floor(ScaledPosition) / voxel_volume_size, 1.0);
-    return;
 
     // Set the ray direction for the ray marcher
     vec3 RayDirection = Model_RayDirection;
@@ -113,6 +84,9 @@ void main(void) {
     // Do ray marching, starting at the front face position in voxel space
     vec3 RayPosition = ScaledPosition + 0.00001 * RayDirection;
 	vec3 mapPos = floor(RayPosition);
+
+    // o_Target = vec4(mapPos / voxel_volume_size, 1.0);
+    // return;
 
 	vec3 deltaDist = abs(vec3(length(RayDirection)) / RayDirection);
 	
