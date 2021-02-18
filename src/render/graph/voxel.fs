@@ -50,81 +50,65 @@ void main(void) {
     // Set the scale for the voxels
     vec3 scale = voxel_volume_size / 16.0;
 
-    // vec3 Normal = mat3(Model) * v_Normal;
-
-    vec3 OppositeForwardNormal = v_Normal * -1.0;
-    vec3 OppositeRightNormal = normalize(cross(vec3(0.0, -1.0, 0.0), OppositeForwardNormal));
-    vec3 OppositeUpNormal = normalize(cross(OppositeForwardNormal, OppositeForwardNormal));
-
-
-    // Get the camera's position in 3D space based on the provided view matrix, and transform it into world space
     mat4 InverseView = inverse(View);
-    vec3 CameraPosition = (Model * vec4(vec3(InverseView[3]), 0.)).xyz;
+    mat4 CameraToModel = Model * InverseView;
 
-    // The current position of this fragment relative to the centre of the cube (local space), in meters
-    vec3 BackFacePosition = v_Position;
+    // vec3 Camera_RayOrigin = vec3(InverseView[3]);
+    vec3 Camera_RayOrigin = vec3(0.0, 0.0, 0.0);
 
-    // The current position of this fragment in world space
-    vec3 BackFaceModelPosition = (Model * vec4(BackFacePosition, 1.0)).xyz;
+    vec3 Model_BackFacePosition = v_Position;
+    vec3 Model_RayOrigin = (CameraToModel * vec4(Camera_RayOrigin, 1.0)).xyz;
+    vec3 Model_RayDirection = normalize(Model_BackFacePosition - Model_RayOrigin);
 
-    // The direction from the camera to the fragment
-    vec3 BackFaceRayDirection = normalize(BackFaceModelPosition - CameraPosition);
+    vec3 Model_XN = vec3(-sign(Model_RayOrigin.x), 0.0, 0.0);
+    vec3 Model_YN = vec3(0.0, -sign(Model_RayOrigin.y), 0.0);
+    vec3 Model_ZN = vec3(0.0, 0.0, -sign(Model_RayOrigin.z));
 
-    // o_Target = vec4(vec3(BackFacePosition), 1.0);
-    // return;
+    float Xd = -0.5 * scale.x;
+    float Yd = -0.5 * scale.x;
+    float Zd = -0.5 * scale.x;
 
-    // My best effort following the formula described here: https://stackoverflow.com/a/4248306/1427397
-    // Finding t for the back face, then for each front face
+    float Xt = -(dot(Model_RayOrigin, Model_XN) - Xd) / dot(Model_RayDirection, Model_XN);
+    vec3 Model_PX = Model_RayOrigin + Xt * Model_RayDirection;
 
-    // t for point A (the back face, initial position) -- t_in in the StackOverflow answer
-    // vec3 ta = (BackFacePosition - BackFacePosition * v_Normal) / -BackFaceRayDirection * -v_Normal;
+    float Yt = -(dot(Model_RayOrigin, Model_YN) - Yd) / dot(Model_RayDirection, Model_YN);
+    vec3 Model_PY = Model_RayOrigin + Yt * Model_RayDirection;
 
-    // t for opposing front faces -- components of the minimum function that defines t_out in the StackOverflow answer
-    vec3 tbx = (OppositeRightPoint - BackFacePosition * OppositeRightNormal) / -BackFaceRayDirection * OppositeRightNormal;
-    vec3 tby = (OppositeUpPoint - BackFacePosition * OppositeUpNormal) / -BackFaceRayDirection * OppositeUpNormal;
-    vec3 tbz = (OppositeForwardPoint - BackFacePosition * OppositeForwardNormal) / -BackFaceRayDirection * OppositeForwardNormal;
+    float Zt = -(dot(Model_RayOrigin, Model_ZN) - Zd) / dot(Model_RayDirection, Model_ZN);
+    vec3 Model_PZ = Model_RayOrigin + Zt * Model_RayDirection;
 
-    // minimum of tb components -- t_out in the SO answer
-    vec3 tb = min(tbx, min(tby, tbz));
+    float Check_X = Xt * sign(floor(abs(Model_RayOrigin.x) * 2.0));
+    float Check_Y = Yt * sign(floor(abs(Model_RayOrigin.y) * 2.0));
+    float Check_Z = Zt * sign(floor(abs(Model_RayOrigin.z) * 2.0));
 
-    o_Target = vec4(abs(tb), 1.0);
-    return;
+    vec3 best = Model_BackFacePosition;
+    if (Check_X > 0.0 || Check_Y > 0.0 || Check_Z > 0.0)
+    {
+        best = Model_PX;
+        float best_length = Check_X;
+        if (Check_Y > best_length)
+        {
+            best = Model_PY;
+            best_length = Check_Y;
+        }
+        if (Check_Z > best_length)
+        {
+            best = Model_PZ;
+        }
+    }
 
-    // Distance between a and b in local space
-    // vec3 len = max(max(tb, vec3(0.0)) - max(ta, vec3(0.0)), vec3(0.0));
-    vec3 len = max(tb, vec3(0.0));
+    vec3 center_offset = vec3(0.5, 0.5, 0.5) * scale;
 
-    o_Target = vec4(vec3(len), 1.0);
-    return;
-    
-    // Move from the back face position in local space to the front face position by
-    // following the ray back towards the camera for the defined distance
-    vec3 FrontFacePosition = BackFacePosition + -BackFaceRayDirection * len;
-
-    // o_Target = vec4(vec3(tb), 1.0);
-    // return;
-
-    // Get the front face position in world space
-    vec3 FrontFaceModelPosition = (Model * vec4(FrontFacePosition, 1.0)).xyz;
-
-    // o_Target = vec4(FrontFaceModelPosition, 1.0);
-    // return;
-
-    // Get the direction from the camera to the front face
-    // (this is probably incomplete as it may need need to account for the normal of the front face plane)
-    vec3 FrontFaceRayDirection = normalize(FrontFaceModelPosition - CameraPosition);
-
-    // o_Target = vec4(FrontFaceRayDirection, 1.0);
-    // return;
+    vec3 Model_FrontFacePosition = (best + center_offset);
 
     // Convert the local space position into voxel space, ie. [-1, 1] -> [0, 32]
-    vec3 ScaledPosition = ((FrontFacePosition + (scale / 2.0)) / scale) * voxel_volume_size;
+    vec3 ScaledPosition = Model_FrontFacePosition * voxel_volume_size / scale;
 
-    o_Target = vec4(floor(ScaledPosition) / 16.0, 1.0);
+    o_Target = vec4(floor(ScaledPosition) / voxel_volume_size, 1.0);
     return;
 
     // Set the ray direction for the ray marcher
-    vec3 RayDirection = FrontFaceRayDirection;
+    vec3 RayDirection = Model_RayDirection;
 
     // Do ray marching, starting at the front face position in voxel space
     vec3 RayPosition = ScaledPosition + 0.00001 * RayDirection;
