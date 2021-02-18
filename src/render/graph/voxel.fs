@@ -1,13 +1,10 @@
 #version 450
 
-// Adapted from https://github.com/gpdaniels/Raymarcher which itself is an adaptation of https://github.com/ivl/Voxgrind
-
 // precision highp float;
 
-layout(location = 0) in vec3 v_ModelPosition;
-layout(location = 1) in vec3 v_Position;
-layout(location = 2) in vec3 v_Normal;
-layout(location = 3) in vec3 v_Uv;
+layout(location = 0) in vec3 v_Position;
+layout(location = 1) in vec3 v_Normal;
+layout(location = 2) in vec3 v_Uv;
 
 layout(location = 0) out vec4 o_Target;
 
@@ -32,6 +29,8 @@ layout(set = 2, binding = 1) uniform Resolution {
 struct VoxelData {
     uint material;
 };
+
+// Volumes occupy a space of 1 meter per 16 voxels.
 layout(set = 3, binding = 0) buffer VoxelVolume {
     vec4 voxel_volume_palette[256];
     vec3 voxel_volume_size;
@@ -41,35 +40,94 @@ layout(set = 3, binding = 0) buffer VoxelVolume {
 
 const int MAX_RAY_STEPS = 64;
 
-// float sdSphere(vec3 p, float d) { return length(p) - d; } 
-
-// float sdBox( vec3 p, vec3 b )
-// {
-//   vec3 d = abs(p) - b;
-//   return min(max(d.x,max(d.y,d.z)),0.0) +
-//          length(max(d,0.0));
-// }
-	
-// bool getVoxel(vec3 c) {
-// 	vec3 p = c + vec3(0.5);
-// 	// float d = max(-sdSphere(p, 5.5), sdBox(p, vec3(4.0)));
-// 	float d = sdSphere(p, 2.5);
-// 	return d < 0.0;
-// }
-
+// Get the voxel material at a position within the volume, returns a clear colour if the space is empty.
 vec4 getVoxel(vec3 Position) {
     uint material = voxel_volume_data[uint(Position.x + voxel_volume_size.x * (Position.y + voxel_volume_size.z * Position.z))].material;
     return voxel_volume_palette[material];
 }
 
 void main(void) {
-    vec3 vPosition = ((v_Position + 1.0) / 2.0) * voxel_volume_size;
+    // Set the scale for the voxels
+    vec3 scale = voxel_volume_size / 16.0;
 
+    // vec3 Normal = mat3(Model) * v_Normal;
+
+    vec3 OppositeForwardNormal = v_Normal * -1.0;
+    vec3 OppositeRightNormal = normalize(cross(vec3(0.0, -1.0, 0.0), OppositeForwardNormal));
+    vec3 OppositeUpNormal = normalize(cross(OppositeForwardNormal, OppositeForwardNormal));
+
+
+    // Get the camera's position in 3D space based on the provided view matrix, and transform it into world space
     mat4 InverseView = inverse(View);
     vec3 CameraPosition = (Model * vec4(vec3(InverseView[3]), 0.)).xyz;
 
-    vec3 RayDirection = normalize(v_ModelPosition - CameraPosition);
-    vec3 RayPosition = vPosition + 0.00001 * RayDirection;
+    // The current position of this fragment relative to the centre of the cube (local space), in meters
+    vec3 BackFacePosition = v_Position;
+
+    // The current position of this fragment in world space
+    vec3 BackFaceModelPosition = (Model * vec4(BackFacePosition, 1.0)).xyz;
+
+    // The direction from the camera to the fragment
+    vec3 BackFaceRayDirection = normalize(BackFaceModelPosition - CameraPosition);
+
+    // o_Target = vec4(vec3(BackFacePosition), 1.0);
+    // return;
+
+    // My best effort following the formula described here: https://stackoverflow.com/a/4248306/1427397
+    // Finding t for the back face, then for each front face
+
+    // t for point A (the back face, initial position) -- t_in in the StackOverflow answer
+    // vec3 ta = (BackFacePosition - BackFacePosition * v_Normal) / -BackFaceRayDirection * -v_Normal;
+
+    // t for opposing front faces -- components of the minimum function that defines t_out in the StackOverflow answer
+    vec3 tbx = (OppositeRightPoint - BackFacePosition * OppositeRightNormal) / -BackFaceRayDirection * OppositeRightNormal;
+    vec3 tby = (OppositeUpPoint - BackFacePosition * OppositeUpNormal) / -BackFaceRayDirection * OppositeUpNormal;
+    vec3 tbz = (OppositeForwardPoint - BackFacePosition * OppositeForwardNormal) / -BackFaceRayDirection * OppositeForwardNormal;
+
+    // minimum of tb components -- t_out in the SO answer
+    vec3 tb = min(tbx, min(tby, tbz));
+
+    o_Target = vec4(abs(tb), 1.0);
+    return;
+
+    // Distance between a and b in local space
+    // vec3 len = max(max(tb, vec3(0.0)) - max(ta, vec3(0.0)), vec3(0.0));
+    vec3 len = max(tb, vec3(0.0));
+
+    o_Target = vec4(vec3(len), 1.0);
+    return;
+    
+    // Move from the back face position in local space to the front face position by
+    // following the ray back towards the camera for the defined distance
+    vec3 FrontFacePosition = BackFacePosition + -BackFaceRayDirection * len;
+
+    // o_Target = vec4(vec3(tb), 1.0);
+    // return;
+
+    // Get the front face position in world space
+    vec3 FrontFaceModelPosition = (Model * vec4(FrontFacePosition, 1.0)).xyz;
+
+    // o_Target = vec4(FrontFaceModelPosition, 1.0);
+    // return;
+
+    // Get the direction from the camera to the front face
+    // (this is probably incomplete as it may need need to account for the normal of the front face plane)
+    vec3 FrontFaceRayDirection = normalize(FrontFaceModelPosition - CameraPosition);
+
+    // o_Target = vec4(FrontFaceRayDirection, 1.0);
+    // return;
+
+    // Convert the local space position into voxel space, ie. [-1, 1] -> [0, 32]
+    vec3 ScaledPosition = ((FrontFacePosition + (scale / 2.0)) / scale) * voxel_volume_size;
+
+    o_Target = vec4(floor(ScaledPosition) / 16.0, 1.0);
+    return;
+
+    // Set the ray direction for the ray marcher
+    vec3 RayDirection = FrontFaceRayDirection;
+
+    // Do ray marching, starting at the front face position in voxel space
+    vec3 RayPosition = ScaledPosition + 0.00001 * RayDirection;
 	vec3 mapPos = floor(RayPosition);
 
 	vec3 deltaDist = abs(vec3(length(RayDirection)) / RayDirection);

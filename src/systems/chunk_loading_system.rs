@@ -34,12 +34,13 @@ pub fn chunk_loading_system(
     //     }
     // }
 
-    let voxel_volume = world_generator.generate(0, 0, 0);
+    let voxel_volume = world_generator.generate(-1, 1, -1);
     let mut voxel_bundle = VoxelBundle::new(&mut meshes, &mut voxel_volumes, voxel_volume);
     voxel_bundle.transform.translation = Vec3::new(
         0.0,
         0.0,
         0.0
     );
+    
     commands.spawn(voxel_bundle);
 }

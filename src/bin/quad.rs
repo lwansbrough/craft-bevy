@@ -30,7 +30,7 @@ fn main() {
         .add_plugin(VoxelRenderPlugin)
         .add_plugin(FlyCameraPlugin)
         .add_asset::<VoxelVolume>()
-        .add_resource(WorldGenerator::new(64))
+        .add_resource(WorldGenerator::new(16))
         .add_resource(WorldData::new())
         .init_resource::<WindowResizeEventListenerState>()
         .add_startup_system(setup.system())
@@ -57,7 +57,7 @@ fn setup(
         })
         .with(LocalPlayerBody {})
         .spawn(Camera3dBundle {
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 50.0)),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 2.0)),
             ..Default::default()
         })
         .with(FlyCamera::default());

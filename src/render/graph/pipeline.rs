@@ -16,6 +16,10 @@ pub const PIPELINE_HANDLE: HandleUntyped =
 
 pub(crate) fn build_pipeline(shaders: &mut Assets<Shader>) -> PipelineDescriptor {
     PipelineDescriptor {
+        rasterization_state: Some(RasterizationStateDescriptor {
+            cull_mode: CullMode::Front,
+            ..Default::default()
+        }),
         depth_stencil_state: Some(DepthStencilStateDescriptor {
             format: TextureFormat::Depth32Float,
             depth_write_enabled: true,
