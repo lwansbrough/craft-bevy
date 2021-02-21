@@ -6,7 +6,8 @@ layout(location = 0) in vec3 v_Position;
 layout(location = 1) in vec3 v_Normal;
 layout(location = 2) in vec3 v_Uv;
 
-layout(location = 0) out vec4 o_Target;
+layout(location = 0) out vec4 o_Color;
+// layout(location = 1) out vec4 o_Normal;
 
 layout(set = 0, binding = 0) uniform Camera {
     mat4 ViewProj;
@@ -128,5 +129,5 @@ void main(void) {
 		color *= vec4(vec3(0.75), 1.0);
 	}
 
-	o_Target = color;
+	o_Color = color;
 }

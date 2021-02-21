@@ -11,10 +11,10 @@ use bevy::{
     reflect::{TypeUuid}
 };
 
-pub const PIPELINE_HANDLE: HandleUntyped =
-    HandleUntyped::weak_from_u64(PipelineDescriptor::TYPE_UUID, 12585943984739023957);
+pub const QUAD_PIPELINE_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(PipelineDescriptor::TYPE_UUID, 18243675326789011301);
+pub const VOXEL_PIPELINE_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(PipelineDescriptor::TYPE_UUID, 12585943984739023957);
 
-pub(crate) fn build_pipeline(shaders: &mut Assets<Shader>) -> PipelineDescriptor {
+pub(crate) fn build_voxel_pipeline(shaders: &mut Assets<Shader>) -> PipelineDescriptor {
     PipelineDescriptor {
         rasterization_state: Some(RasterizationStateDescriptor {
             cull_mode: CullMode::Front,
@@ -39,6 +39,54 @@ pub(crate) fn build_pipeline(shaders: &mut Assets<Shader>) -> PipelineDescriptor
             fragment: Some(shaders.add(Shader::from_glsl(
                 ShaderStage::Fragment,
                 include_str!("voxel.fs"),
+            ))),
+        })
+    }
+}
+
+pub(crate) fn build_quad_pipeline(shaders: &mut Assets<Shader>) -> PipelineDescriptor {
+    PipelineDescriptor {
+        rasterization_state: Some(RasterizationStateDescriptor {
+            front_face: FrontFace::Ccw,
+            cull_mode: CullMode::Back,
+            depth_bias: 0,
+            depth_bias_slope_scale: 0.0,
+            depth_bias_clamp: 0.0,
+            clamp_depth: false,
+        }),
+        depth_stencil_state: Some(DepthStencilStateDescriptor {
+            format: TextureFormat::Depth32Float,
+            depth_write_enabled: false,
+            depth_compare: CompareFunction::Less,
+            stencil: StencilStateDescriptor {
+                front: StencilStateFaceDescriptor::IGNORE,
+                back: StencilStateFaceDescriptor::IGNORE,
+                read_mask: 0,
+                write_mask: 0,
+            },
+        }),
+        color_states: vec![ColorStateDescriptor {
+            format: TextureFormat::default(),
+            color_blend: BlendDescriptor {
+                src_factor: BlendFactor::SrcAlpha,
+                dst_factor: BlendFactor::OneMinusSrcAlpha,
+                operation: BlendOperation::Add,
+            },
+            alpha_blend: BlendDescriptor {
+                src_factor: BlendFactor::One,
+                dst_factor: BlendFactor::One,
+                operation: BlendOperation::Add,
+            },
+            write_mask: ColorWrite::ALL,
+        }],
+        ..PipelineDescriptor::new(ShaderStages {
+            vertex: shaders.add(Shader::from_glsl(
+                ShaderStage::Vertex,
+                include_str!("quad.vs"),
+            )),
+            fragment: Some(shaders.add(Shader::from_glsl(
+                ShaderStage::Fragment,
+                include_str!("quad.fs"),
             ))),
         })
     }

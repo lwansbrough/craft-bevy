@@ -1,10 +1,13 @@
-use bevy::{asset::Assets, ecs::Resources, prelude::{Color, HandleUntyped, Texture}, reflect::{TypeUuid}, render::{camera::ActiveCameras, pass::{LoadOp, Operations, PassDescriptor, RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor, TextureAttachment}, pipeline::PipelineDescriptor, render_graph::{AssetRenderResourcesNode, CameraNode, PassNode, RenderGraph, RenderResourcesNode, base}, shader::Shader, texture::{Extent3d, SamplerDescriptor, TextureDescriptor, TextureDimension, TextureFormat, TextureUsage}}, transform::prelude::GlobalTransform};
+use base::node::MAIN_PASS;
+use bevy::{asset::Assets, ecs::Resources, prelude::{Color, HandleUntyped, StandardMaterial, Texture}, reflect::{TypeUuid}, render::{camera::ActiveCameras, pass::{LoadOp, Operations, PassDescriptor, RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor, TextureAttachment}, pipeline::PipelineDescriptor, render_graph::{AssetRenderResourcesNode, CameraNode, PassNode, RenderGraph, RenderResourcesNode, base}, shader::Shader, texture::{Extent3d, SamplerDescriptor, TextureDescriptor, TextureDimension, TextureFormat, TextureUsage}}, transform::prelude::GlobalTransform, window::Windows};
 
 use nodes::TimeNode;
 use nodes::ResolutionNode;
 
 use self::nodes::VoxelVolumeNode;
 use self::nodes::TextureNode;
+
+use crate::resources::WindowResizeEventListenerState;
 
 pub mod nodes;
 pub mod pipeline;
@@ -20,6 +23,7 @@ pub mod node {
     pub const DEPTH_TEXTURE_NODE: &str = "depth_texture_node";
     pub const GBUFFER_PASS: &str = "gbuffer_pass";
     pub const GBUFFER_CAMERA: &str = "gbuffer_camera";
+    pub const STANDARD_MATERIAL: &str = "standard_material";
 }
 
 pub mod uniform {
@@ -35,7 +39,6 @@ pub mod storage {
 pub struct GBufferPass;
 
 pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
-
     let mut active_cameras = resources.get_mut::<ActiveCameras>().unwrap();
 
     let mut gbuffer_pass_node = PassNode::<&GBufferPass>::new(PassDescriptor {
@@ -53,7 +56,11 @@ pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
                 load: LoadOp::Clear(1.0),
                 store: true,
             }),
-            stencil_ops: None,
+            stencil_ops: None
+            // stencil_ops: Some(Operations {
+            //     load: LoadOp::Clear(0),
+            //     store: true
+            // }),
         }),
         sample_count: 1,
     });
@@ -62,6 +69,10 @@ pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
     graph.add_system_node(
         node::TRANSFORM,
         RenderResourcesNode::<GlobalTransform>::new(true)
+    );
+    graph.add_system_node(
+        node::STANDARD_MATERIAL,
+        AssetRenderResourcesNode::<StandardMaterial>::new(true),
     );
     graph.add_system_node(node::TIME, TimeNode::new());
     graph.add_system_node(node::RESOLUTION, ResolutionNode::new());
@@ -78,7 +89,7 @@ pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
         node::TEXTURE_NODE,
         TextureNode::new(
             TextureDescriptor {
-                size: Extent3d::new(512, 512, 1),
+                size: Extent3d::new(1920, 1080, 1),
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: TextureDimension::D2,
@@ -94,7 +105,7 @@ pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
         node::DEPTH_TEXTURE_NODE,
         TextureNode::new(
             TextureDescriptor {
-                size: Extent3d::new(512, 512, 1),
+                size: Extent3d::new(1920, 1080, 1),
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: TextureDimension::D2,
@@ -115,12 +126,18 @@ pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
     graph.add_slot_edge(node::TEXTURE_NODE, TextureNode::TEXTURE, node::GBUFFER_PASS, "color_attachment").unwrap();
     graph.add_slot_edge(node::DEPTH_TEXTURE_NODE, TextureNode::TEXTURE, node::GBUFFER_PASS, "depth").unwrap();
     
+    graph.add_node_edge(node::STANDARD_MATERIAL, base::node::MAIN_PASS).unwrap();
+    graph.add_node_edge(node::TRANSFORM, base::node::MAIN_PASS).unwrap();
     graph.add_node_edge(node::GBUFFER_PASS, base::node::MAIN_PASS).unwrap();
 
     let mut shaders = resources.get_mut::<Assets<Shader>>().unwrap();
     let mut pipelines = resources.get_mut::<Assets<PipelineDescriptor>>().unwrap();
     pipelines.set_untracked(
-        pipeline::PIPELINE_HANDLE,
-        pipeline::build_pipeline(&mut shaders),
+        pipeline::QUAD_PIPELINE_HANDLE,
+        pipeline::build_quad_pipeline(&mut shaders),
+    );
+    pipelines.set_untracked(
+        pipeline::VOXEL_PIPELINE_HANDLE,
+        pipeline::build_voxel_pipeline(&mut shaders),
     );
 }
