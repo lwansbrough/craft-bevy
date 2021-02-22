@@ -39,7 +39,7 @@ layout(set = 3, binding = 0) buffer VoxelVolume {
 };
 
 
-const int MAX_RAY_STEPS = 2048;
+const int MAX_RAY_STEPS = 512;
 
 // Get the voxel material at a position within the volume, returns a clear colour if the space is empty.
 vec4 getVoxel(vec3 Position) {
@@ -83,7 +83,7 @@ void main(void) {
     vec3 RayDirection = Model_RayDirection;
 
     // Do ray marching, starting at the front face position in voxel space
-    vec3 RayPosition = ScaledPosition + 0.00001 * RayDirection;
+    vec3 RayPosition = ScaledPosition + 0.001 * RayDirection;
 	vec3 mapPos = floor(RayPosition);
 
     // o_Target = vec4(mapPos / voxel_volume_size, 1.0);
@@ -129,5 +129,10 @@ void main(void) {
 		color *= vec4(vec3(0.75), 1.0);
 	}
 
+    if (color.a < 1.0) {
+        gl_FragDepth = 1.0;
+    } else {
+        gl_FragDepth = gl_FragCoord.z;
+    }
 	o_Color = color;
 }

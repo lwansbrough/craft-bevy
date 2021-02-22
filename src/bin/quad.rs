@@ -31,7 +31,7 @@ fn main() {
         .add_plugin(VoxelRenderPlugin)
         .add_plugin(FlyCameraPlugin)
         .add_asset::<VoxelVolume>()
-        .add_resource(WorldGenerator::new(64))
+        .add_resource(WorldGenerator::new(16))
         .add_resource(WorldData::new())
         .add_startup_system(setup.system())
         .add_system(window_resolution_system.system())
@@ -58,7 +58,8 @@ fn setup(
         .spawn(Camera3dBundle {
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 12.0)),
             ..Default::default()
-        });
+        })
+        .with(FlyCamera::default());
 
     let mut gbuffer_camera = Camera3dBundle {
         camera: Camera {
@@ -72,7 +73,7 @@ fn setup(
     };
     // gbuffer_camera.camera.window = WindowId::new();
     let camera_projection = &mut gbuffer_camera.perspective_projection;
-    camera_projection.update(512.0, 512.0);
+    // camera_projection.update(1.0, 1.0);
     gbuffer_camera.camera.projection_matrix = camera_projection.get_projection_matrix();
     gbuffer_camera.camera.depth_calculation = camera_projection.depth_calculation();
 
