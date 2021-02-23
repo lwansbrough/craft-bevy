@@ -31,10 +31,6 @@ pub mod uniform {
     pub const RESOLUTION: &str = "Resolution";
 }
 
-pub mod storage {
-    pub const VOXEL_VOLUME: &str = "VoxelVolume";
-}
-
 #[derive(Default)]
 pub struct GBufferPass;
 

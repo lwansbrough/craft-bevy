@@ -27,24 +27,24 @@ layout(set = 2, binding = 1) uniform Resolution {
     float ScreenResolutionY;
 };
 
-struct VoxelData {
-    uint material;
-};
-
-// Volumes occupy a space of 1 meter per 16 voxels.
-layout(set = 3, binding = 0) buffer VoxelVolume {
-    vec4 voxel_volume_palette[256];
+layout(set = 3, binding = 0) uniform VoxelVolume_size {
     vec3 voxel_volume_size;
-    VoxelData voxel_volume_data[];
 };
 
+layout(set = 3, binding = 1) uniform texture1D VoxelVolume_palette;
+layout(set = 3, binding = 2) uniform sampler VoxelVolume_palette_sampler;
+layout(set = 3, binding = 3) uniform texture2D VoxelVolume_data;
+layout(set = 3, binding = 4) uniform sampler VoxelVolume_data_sampler;
 
 const int MAX_RAY_STEPS = 512;
 
 // Get the voxel material at a position within the volume, returns a clear colour if the space is empty.
 vec4 getVoxel(vec3 Position) {
-    uint material = voxel_volume_data[uint(Position.x + voxel_volume_size.x * (Position.y + voxel_volume_size.z * Position.z))].material;
-    return voxel_volume_palette[material];
+    uint index = uint(Position.x + voxel_volume_size.x * (Position.y + voxel_volume_size.z * Position.z));
+    uint row = uint(floor(index / 4096));
+    uint col = index % 4096;
+    uint material = uint(texture(sampler2D(VoxelVolume_data, VoxelVolume_data_sampler), vec2(row, col)));
+    return texture(sampler1D(VoxelVolume_palette, VoxelVolume_palette_sampler), material);
 }
 
 void main(void) {
