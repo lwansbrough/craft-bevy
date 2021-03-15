@@ -1,6 +1,6 @@
 use bevy::{ecs::{Bundle, ResMut}, math::{Vec2, Vec3}, pbr::PbrBundle, prelude::{Assets, Draw, GlobalTransform, Handle, Mesh, RenderPipelines, StandardMaterial, Transform, shape::{self, Quad}}, render::{prelude::Visible, mesh::VertexAttributeValues, pipeline::{PrimitiveTopology, RenderPipeline}, render_graph::base::MainPass}};
 
-use crate::{GBufferPass, render::material::VoxelMaterial};
+use crate::{GBufferPass, VOXELS_PER_METER, render::material::VoxelMaterial};
 use crate::render::VoxelVolume;
 
 #[derive(Bundle)]
@@ -64,8 +64,6 @@ pub struct VoxelBundle {
     pub transform: Transform,
     pub global_transform: GlobalTransform,
 }
-
-pub const VOXELS_PER_METER: f32 = 16.0;
 
 impl VoxelBundle {
     pub fn new(meshes: &mut ResMut<Assets<Mesh>>, voxel_volumes: &mut ResMut<Assets<VoxelVolume>>, voxel_volume: VoxelVolume) -> VoxelBundle {

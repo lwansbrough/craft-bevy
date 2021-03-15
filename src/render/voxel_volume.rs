@@ -1,7 +1,11 @@
+use std::ops::DerefMut;
+
 use serde::{Serialize, Deserialize};
 use bevy::{core::{AsBytes, Byteable, FromBytes}, prelude::*, reflect::TypeUuid, render::{renderer::{BufferInfo, BufferUsage, RenderResource, RenderResourceBinding, RenderResourceContext, RenderResourceId, RenderResources}}, utils::{HashMap, HashSet}};
 
 // use crate::Octree;
+
+pub const VOXELS_PER_METER: f32 = 16.0;
 
 #[derive(Debug, TypeUuid, Serialize)]
 #[uuid = "9c15ff5b-12ae-4f62-a489-c3a71ebda138"]
@@ -62,6 +66,21 @@ impl VoxelVolume {
         std::mem::size_of::<Vec3>() +
         std::mem::size_of::<VoxelData>() * self.data.len()
     }
+
+    pub fn voxel(&self, position: Vec3) -> Option<VoxelData> {
+        let voxel_data = self.data.get((position.x + self.size.x * (position.y + self.size.z * position.z)) as usize);
+        if let Some(voxel) = voxel_data {
+            Some(*voxel)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_voxel(&mut self, position: Vec3, data: Option<VoxelData>) {
+        if let Some(voxel) = data {
+            self.data[((position.x + self.size.x * (position.y + self.size.z * position.z)) as usize)] = voxel;
+        }
+    }
 }
 
 impl Default for VoxelVolume {
@@ -75,7 +94,7 @@ impl Default for VoxelVolume {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Copy, Clone, Serialize)]
 pub struct VoxelData {
     pub material: u32,
 }

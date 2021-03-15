@@ -12,6 +12,7 @@ mod server_entity_spawning;
 mod client_entity_spawning;
 mod client_authoratative_state_consumption;
 mod window_resolution;
+mod gameplay;
 
 pub use self::{
     command_accumulator::*,
@@ -27,5 +28,6 @@ pub use self::{
     server_entity_spawning::*,
     client_entity_spawning::*,
     client_authoratative_state_consumption::*,
-    window_resolution::*
+    window_resolution::*,
+    gameplay::*
 };

@@ -4,6 +4,7 @@ mod simulation_time;
 mod world_generator;
 mod window_resize_event_listener_state;
 mod world_data;
+mod player_focus;
 
 pub use self::{
     clients::*,
@@ -11,5 +12,6 @@ pub use self::{
     simulation_time::*,
     world_generator::*,
     window_resize_event_listener_state::*,
-    world_data::*
+    world_data::*,
+    player_focus::*
 };

@@ -34,10 +34,16 @@ pub fn chunk_loading_system(
     //     }
     // }
 
-    for x in -16..=16 {
-        for z in -16..=16 {
+    for x in -2..=2 {
+        for z in -2..=2 {
             let voxel_volume = world_generator.generate(x, 1, z);
             let mut voxel_bundle = VoxelBundle::new(&mut meshes, &mut voxel_volumes, voxel_volume);
+            // let mut voxel_bundle = PbrBundle {
+            //     material: materials_standard.add(bevy::render::color::Color::GREEN.into()),
+            //     mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            //     ..Default::default()
+            // };
+            
             voxel_bundle.transform.translation = Vec3::new(
                 x as f32 * world_generator.chunk_size() as f32 / VOXELS_PER_METER,
                 0 as f32 * world_generator.chunk_size() as f32 / VOXELS_PER_METER,

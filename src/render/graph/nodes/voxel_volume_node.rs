@@ -52,6 +52,8 @@ pub struct VoxelVolumeNodeState {
     command_queue: CommandQueue,
     voxel_volume_event_reader: EventReader<AssetEvent<VoxelVolume>>,
     voxel_entities: HashMap<Handle<VoxelVolume>, VoxelEntities>,
+    voxel_staging_buffers: HashMap<Handle<VoxelVolume>, BufferId>,
+    voxel_buffers: HashMap<Handle<VoxelVolume>, BufferId>,
 }
 
 pub const VOXEL_VOLUME_BUFFER_ID: u64 = 0;
@@ -76,6 +78,8 @@ fn remove_current_voxel_resources(
     remove_resource_save(render_resource_context, handle, VOXEL_VOLUME_BUFFER_ID);
 }
 
+// Reference: https://github.com/bevyengine/bevy/blob/b17f8a4bce5551b418654fffb1fe97ff0f9852f0/crates/bevy_render/src/render_graph/nodes/render_resources_node.rs#L620
+
 pub fn voxel_node_system(
     mut state: Local<VoxelVolumeNodeState>,
     render_resource_context: Res<Box<dyn RenderResourceContext>>,
@@ -83,10 +87,11 @@ pub fn voxel_node_system(
     // TODO: this write on RenderResourceBindings will prevent this system from running in parallel with other systems that do the same
     voxel_volumes: Res<Assets<VoxelVolume>>,
     voxel_events: Res<Events<AssetEvent<VoxelVolume>>>,
-    mut queries: QuerySet<(
-        Query<&mut RenderPipelines, With<Handle<VoxelVolume>>>,
-        Query<(Entity, &Handle<VoxelVolume>, &mut RenderPipelines), Changed<Handle<VoxelVolume>>>,
-    )>,
+    // mut queries: QuerySet<(
+    //     Query<&mut RenderPipelines, With<Handle<VoxelVolume>>>,
+    //     Query<(Entity, &Handle<VoxelVolume>, &mut RenderPipelines), Changed<Handle<VoxelVolume>>>,
+    // )>,
+    mut queries: Query<(&Handle<VoxelVolume>, &mut RenderPipelines)>,
 ) {
     let state = &mut state;
     let mut changed_voxel_volumes = HashSet::default();
@@ -110,16 +115,23 @@ pub fn voxel_node_system(
         }
     }
 
+    let mut changed = HashSet::<Handle<VoxelVolume>>::default();
+
     // update changed voxel data
     for changed_voxel_volume_handle in changed_voxel_volumes.iter() {
+
+        if changed.contains(changed_voxel_volume_handle) {
+            continue;
+        }
+        
         if let Some(voxel_volume) = voxel_volumes.get(changed_voxel_volume_handle) {
+            changed.insert(changed_voxel_volume_handle.clone_weak());
             // TODO: check for individual buffer changes in non-interleaved mode
             let size = voxel_volume.byte_len();
 
-            if let Some(RenderResourceId::Buffer(staging_buffer)) =
-                render_resource_context.get_asset_resource(changed_voxel_volume_handle, VOXEL_VOLUME_STAGING_BUFFER_ID)
-            {
-                render_resource_context.map_buffer(staging_buffer)
+            if state.voxel_staging_buffers.contains_key(changed_voxel_volume_handle) {
+                let staging_buffer = *state.voxel_staging_buffers.get(changed_voxel_volume_handle).unwrap();
+                render_resource_context.map_buffer(staging_buffer);
             } else {
                 let voxel_buffer = render_resource_context.create_buffer(
                     BufferInfo {
@@ -128,6 +140,7 @@ pub fn voxel_node_system(
                         ..Default::default()
                     }
                 );
+                state.voxel_buffers.insert(changed_voxel_volume_handle.clone_weak(), voxel_buffer);
     
                 render_resource_context.set_asset_resource(
                     changed_voxel_volume_handle,
@@ -140,71 +153,98 @@ pub fn voxel_node_system(
                     buffer_usage: BufferUsage::COPY_SRC | BufferUsage::MAP_WRITE,
                     mapped_at_creation: true,
                 });
+                state.voxel_staging_buffers.insert(changed_voxel_volume_handle.clone_weak(), staging_buffer);
 
                 render_resource_context.set_asset_resource(
                     changed_voxel_volume_handle,
                     RenderResourceId::Buffer(staging_buffer),
                     VOXEL_VOLUME_STAGING_BUFFER_ID,
                 );
+            };
+
+            if let Some(voxel_volume) = voxel_volumes.get(changed_voxel_volume_handle) {
+                println!("writing buffer");
+                let voxels_bytes = &voxel_volume.to_bytes();
+                let voxels_size = voxels_bytes.len();
+    
+                let voxel_staging_buffer = *state.voxel_staging_buffers.get(changed_voxel_volume_handle).unwrap();
+                let voxel_buffer = *state.voxel_buffers.get(changed_voxel_volume_handle).unwrap();
+    
+                render_resource_context.write_mapped_buffer(
+                    voxel_staging_buffer,
+                    0..voxels_size as u64,
+                    &mut |data, _renderer| {
+                        data[0..voxels_size].copy_from_slice(&voxels_bytes[..]);
+                    },
+                );
+                render_resource_context.unmap_buffer(voxel_staging_buffer);
+    
+                state.command_queue.copy_buffer_to_buffer(
+                    voxel_staging_buffer,
+                    0,
+                    voxel_buffer,
+                    0,
+                    voxels_size as u64,
+                );
+    
+                for (voxel_volume_handle, mut render_pipelines) in queries.iter_mut() {
+                    if voxel_volume_handle == changed_voxel_volume_handle {
+                        render_pipelines.bindings.set(
+                            super::super::storage::VOXEL_VOLUME,
+                            RenderResourceBinding::Buffer {
+                                buffer: voxel_buffer,
+                                range: 0..voxels_size as u64,
+                                dynamic_index: None,
+                            },
+                        );
+                    }
+                }
             }
         }
     }
 
-    // handover buffers to pipeline
-    for (entity, handle, render_pipelines) in queries.q1_mut().iter_mut() {
-        let voxel_entities = state
-            .voxel_entities
-            .entry(handle.clone_weak())
-            .or_insert_with(VoxelEntities::default);
+    // disabled because changes aren't detected on Changed
+    // for (entity, handle, mut render_pipelines) in queries.q1_mut().iter_mut() {
+    //     let voxel_entities = state
+    //         .voxel_entities
+    //         .entry(handle.clone_weak())
+    //         .or_insert_with(VoxelEntities::default);
         
-        voxel_entities.entities.insert(entity);
-        
-        if let Some(voxel_volume) = voxel_volumes.get(handle) {
-            update_entity_voxel_volume(&mut state.command_queue, render_resource_context, voxel_volume, handle, render_pipelines);
-        }
-    }
-}
+    //     voxel_entities.entities.insert(entity);
 
-fn update_entity_voxel_volume(
-    command_queue: &mut CommandQueue,
-    render_resource_context: &dyn RenderResourceContext,
-    voxel_volume: &VoxelVolume,
-    handle: &Handle<VoxelVolume>,
-    mut render_pipelines: Mut<RenderPipelines>,
-) {
-    if let Some(RenderResourceId::Buffer(staging_buffer)) =
-        render_resource_context.get_asset_resource(handle, VOXEL_VOLUME_STAGING_BUFFER_ID)
-    {
-        let voxels_bytes = &voxel_volume.to_bytes();
-        let voxels_size = voxels_bytes.len();
-        render_resource_context.write_mapped_buffer(
-            staging_buffer,
-            0..voxels_size as u64,
-            &mut |data, _renderer| {
-                data[0..voxels_size].copy_from_slice(&voxels_bytes[..]);
-            },
-        );
-        render_resource_context.unmap_buffer(staging_buffer);
+    //     if let Some(voxel_volume) = voxel_volumes.get(handle) {
+    //         println!("writing buffer");
+    //         let voxels_bytes = &voxel_volume.to_bytes();
+    //         let voxels_size = voxels_bytes.len();
 
-        if let Some(RenderResourceId::Buffer(voxel_buffer)) =
-            render_resource_context.get_asset_resource(handle, VOXEL_VOLUME_BUFFER_ID)
-        {
-            render_pipelines.bindings.set(
-                super::super::storage::VOXEL_VOLUME,
-                RenderResourceBinding::Buffer {
-                    buffer: voxel_buffer,
-                    range: 0..voxels_size as u64,
-                    dynamic_index: None,
-                },
-            );
+    //         let voxel_staging_buffer = *state.voxel_staging_buffers.get(handle).unwrap();
+    //         let voxel_buffer = *state.voxel_buffers.get(handle).unwrap();
 
-            command_queue.copy_buffer_to_buffer(
-                staging_buffer,
-                0,
-                voxel_buffer,
-                0,
-                voxels_size as u64,
-            );
-        }
-    }
+    //         render_resource_context.write_mapped_buffer(
+    //             voxel_staging_buffer,
+    //             0..voxels_size as u64,
+    //             &mut |data, _renderer| {
+    //                 data[0..voxels_size].copy_from_slice(&voxels_bytes[..]);
+    //             },
+    //         );
+    //         render_resource_context.unmap_buffer(voxel_staging_buffer);
+
+    //         state.command_queue.copy_buffer_to_buffer(
+    //             voxel_staging_buffer,
+    //             0,
+    //             voxel_buffer,
+    //             0,
+    //             voxels_size as u64,
+    //         );
+
+    //         render_pipelines.bindings.set(
+    //             super::super::storage::VOXEL_VOLUME,
+    //             RenderResourceBinding::Buffer {
+    //                 buffer: voxel_buffer,
+    //                 range: 0..voxels_size as u64,
+    //                 dynamic_index: None,
+    //             },
+    //         );
+    //     }
+    // }
 }

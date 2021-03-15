@@ -24,15 +24,24 @@ use craft::render::VoxelRenderPlugin;
 
 fn main() {
     App::build()
+        .add_resource(WindowDescriptor {
+            vsync: false,
+            ..Default::default()
+        })
         .add_plugins(DefaultPlugins)
         .add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         // .add_plugin(bevy::diagnostic::PrintDiagnosticsPlugin::default())
         .init_resource::<WindowResizeEventListenerState>()
+        .init_resource::<PlayerFocus>()
         .add_plugin(VoxelRenderPlugin)
         .add_plugin(FlyCameraPlugin)
         .add_asset::<VoxelVolume>()
-        .add_resource(WorldGenerator::new(16))
+        .add_resource(WorldGenerator::new(32))
         .add_resource(WorldData::new())
+        .add_system_to_stage(
+            stage::POST_UPDATE, // We want this system to run after ray casting has been computed
+            player_focus.system(), // Update the debug cursor location
+        )
         .add_startup_system(setup.system())
         .add_system(window_resolution_system.system())
         .add_startup_system(chunk_loading_system.system())
@@ -73,7 +82,7 @@ fn setup(
     };
     // gbuffer_camera.camera.window = WindowId::new();
     let camera_projection = &mut gbuffer_camera.perspective_projection;
-    // camera_projection.update(1.0, 1.0);
+    camera_projection.update(1.0, 1.0);
     gbuffer_camera.camera.projection_matrix = camera_projection.get_projection_matrix();
     gbuffer_camera.camera.depth_calculation = camera_projection.depth_calculation();
 
