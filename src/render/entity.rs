@@ -1,4 +1,4 @@
-use bevy::{ecs::{Bundle, ResMut}, math::{Vec2, Vec3}, pbr::PbrBundle, prelude::{Assets, Draw, GlobalTransform, Handle, Mesh, RenderPipelines, StandardMaterial, Transform, shape::{self, Quad}}, render::{prelude::Visible, mesh::VertexAttributeValues, pipeline::{PrimitiveTopology, RenderPipeline}, render_graph::base::MainPass}};
+use bevy::{ecs::bundle::Bundle, math::{Vec2, Vec3}, pbr::PbrBundle, prelude::{Assets, Draw, GlobalTransform, Handle, Mesh, RenderPipelines, ResMut, StandardMaterial, Transform, shape::{self, Quad}}, render::{prelude::Visible, mesh::VertexAttributeValues, pipeline::{PrimitiveTopology, RenderPipeline}, render_graph::base::MainPass}};
 
 use crate::{GBufferPass, render::material::VoxelMaterial};
 use crate::render::VoxelVolume;
@@ -39,8 +39,7 @@ impl QuadBundle {
         QuadBundle {
             mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(2.0, 2.0)))),
             material: materials.add(StandardMaterial {
-                albedo_texture: Some(texture_handle.clone()),
-                shaded: true,
+                base_color_texture: Some(texture_handle.clone()),
                 ..Default::default()
             }),
             // visible: Visible {

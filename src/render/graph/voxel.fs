@@ -22,11 +22,6 @@ layout(set = 2, binding = 0) uniform Time {
     double TimeElapsed;
 };
 
-layout(set = 2, binding = 1) uniform Resolution {
-    float ScreenResolutionX;
-    float ScreenResolutionY;
-};
-
 layout(set = 3, binding = 0) uniform VoxelVolume_size {
     vec3 voxel_volume_size;
 };

@@ -20,6 +20,6 @@ pub fn server_state_preauthoring_system<TComponent: Synchronizable>(
         let state_frames = synchronizable.state_frames();
         let state_frame = state_frames.history_iter(1).next();
 
-        commands.add_command(Synchronized::<TComponent>::author_state_command(entity, sim_time.frame()));
+        commands.add(Synchronized::<TComponent>::author_state_command(entity, sim_time.frame()));
     }
 }

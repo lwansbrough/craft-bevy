@@ -8,9 +8,7 @@ use crate::utilities::*;
 
 #[derive(Default)]
 pub struct LocalPlayerCameraState {
-    mouse_button_event_reader: EventReader<MouseButtonInput>,
-    mouse_motion_event_reader: EventReader<MouseMotion>,
-    cursor_moved_event_reader: EventReader<CursorMoved>,
+
 }
 
 const MOUSE_SENSITIVITY: f32 = 1.0;
@@ -20,7 +18,7 @@ const MAX_PITCH_ANGLE: f32 = 89.0;
 pub fn local_player_camera_system(
     mut state: ResMut<LocalPlayerCameraState>,
     time: Res<Time>,
-    mouse_motion_events: Res<Events<MouseMotion>>,
+    mouse_motion_events: EventReader<MouseMotion>,
     mut player_head_query: Query<(&LocalPlayerHead, &mut Transform)>,
     mut player_body_query: Query<(&LocalPlayerBody, &mut Transform)>,
 ) {

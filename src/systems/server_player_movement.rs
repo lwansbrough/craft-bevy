@@ -7,10 +7,10 @@ use crate::resources::*;
 
 pub fn server_player_movement_system(
     mut state: ResMut<NetworkEventListenerState>,
-    command_frame_events: Res<Events<CommandFrameEvent>>,
+    mut command_frame_events: EventReader<CommandFrameEvent>,
     mut query: Query<(Entity, &LocalPlayer, &mut Synchronized<RigidBodyHandleComponent>)>
 ) {
-    for event in state.command_frame_events.iter(&command_frame_events) {
+    for event in command_frame_events.iter() {
 
         // If the command frame is for an input command then we're in control of it, proceed
         if let SynchronizedInput::InputCommand(_) = event.command_frame.input {

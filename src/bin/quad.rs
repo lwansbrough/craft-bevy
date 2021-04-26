@@ -41,34 +41,35 @@ fn main() {
 
 /// set up a simple 3D scene
 fn setup(
-    commands: &mut Commands,
+    mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials_standard: ResMut<Assets<StandardMaterial>>,
     mut voxel_volumes: ResMut<Assets<VoxelVolume>>,
 ) {    
     commands
-        .spawn(QuadBundle::new(&mut meshes, &mut materials_standard))
-        .spawn(PbrBundle {
+        .spawn()
+        .insert_bundle(QuadBundle::new(&mut meshes, &mut materials_standard))
+        .insert_bundle(PbrBundle {
             material: materials_standard.add(bevy::render::color::Color::GREEN.into()),
             transform: Transform::from_translation(Vec3::new(-3.0, 0.0, 0.0)),
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             ..Default::default()
         })
-        .with(LocalPlayerBody {})
-        .spawn(Camera3dBundle {
+        .insert(LocalPlayerBody {})
+        .insert_bundle(PerspectiveCameraBundle  {
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 12.0)),
             ..Default::default()
         })
-        .with(FlyCamera::default());
+        .insert(FlyCamera::default());
 
-    let mut gbuffer_camera = Camera3dBundle {
+    let mut gbuffer_camera = PerspectiveCameraBundle  {
         camera: Camera {
             name: Some(node::GBUFFER_CAMERA.to_string()),
             // window: WindowId::new(), // otherwise it will use main window size / aspect for calculation of projection matrix
             ..Default::default()
         },
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 15.0))
-            .looking_at(Vec3::default(), Vec3::unit_y()),
+            .looking_at(Vec3::default(), Vec3::Y),
         ..Default::default()
     };
     // gbuffer_camera.camera.window = WindowId::new();
@@ -77,6 +78,7 @@ fn setup(
     gbuffer_camera.camera.projection_matrix = camera_projection.get_projection_matrix();
     gbuffer_camera.camera.depth_calculation = camera_projection.depth_calculation();
 
-    commands.spawn(gbuffer_camera)
-        .with(FlyCamera::default());
+    commands.spawn()
+        .insert_bundle(gbuffer_camera)
+        .insert(FlyCamera::default());
 }

@@ -33,14 +33,18 @@ pub fn server_entity_spawning_for_connected_clients(
 /// This system sends information about existing synchronizable entities to newly connected clients
 pub fn server_entity_spawning_for_new_clients(
     commands: &mut Commands,
-    changed_clients: ChangedRes<Clients>,
+    clients: Res<Clients>,
     net: Res<NetworkResource>,
     synchronizable_entities: Query<(Entity, &Synchronize)>,
 ) {
     for (entity, _) in synchronizable_entities.iter() {
         println!("Server synchronizing entity {}", entity.id());
 
-        for client in changed_clients.iter() {
+        if !clients.is_changed() {
+            continue
+        }
+
+        for client in clients.iter() {
             net.send(
                 client.connection().addr,
                 &bincode::serialize(&NetMessage::EntitySpawn(EntitySpawn {

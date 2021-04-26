@@ -1,4 +1,4 @@
-use bevy::{core::{AsBytes, Byteable}, ecs::{ResMut, Res, Local, Commands, System, World, Resources}, prelude::*, render::{render_graph::{SystemNode, CommandQueue, Node, ResourceSlots}, renderer::{BufferId, BufferInfo, BufferUsage, RenderContext, RenderResourceBinding, RenderResourceBindings, RenderResourceContext, RenderResourceId}, texture::{Extent3d, SamplerDescriptor, TextureDescriptor, TextureFormat, TextureUsage}}, utils::{HashMap, HashSet}};
+use bevy::{core::{AsBytes, Byteable}, prelude::*, render::{render_graph::{SystemNode, CommandQueue, Node, ResourceSlots}, renderer::{BufferId, BufferInfo, BufferMapMode, BufferUsage, RenderContext, RenderResourceBinding, RenderResourceBindings, RenderResourceContext, RenderResourceId}, texture::{Extent3d, SamplerDescriptor, TextureDescriptor, TextureFormat, TextureUsage}}, utils::{HashMap, HashSet}};
 
 use crate::VoxelVolume;
 
@@ -19,7 +19,6 @@ impl Node for VoxelVolumeNode {
     fn update(
         &mut self,
         _world: &World,
-        _resources: &Resources,
         render_context: &mut dyn RenderContext,
         _input: &ResourceSlots,
         _output: &mut ResourceSlots,
@@ -29,15 +28,13 @@ impl Node for VoxelVolumeNode {
 }
 
 impl SystemNode for VoxelVolumeNode {
-    fn get_system(&self, commands: &mut Commands) -> Box<dyn System<In = (), Out = ()>> {
-        let system = voxel_node_system.system();
-        commands.insert_local_resource(
-            system.id(),
-            VoxelVolumeNodeState {
+    fn get_system(&self) -> Box<dyn System<In = (), Out = ()>> {
+        let system = voxel_node_system.system().config(|config| {
+            config.0 = Some(VoxelVolumeNodeState {
                 command_queue: self.command_queue.clone(),
                 ..Default::default()
-            },
-        );
+            })
+        });
         Box::new(system)
     }
 }
@@ -50,13 +47,11 @@ pub struct VoxelEntities {
 #[derive(Default)]
 pub struct VoxelVolumeNodeState {
     command_queue: CommandQueue,
-    voxel_volume_event_reader: EventReader<AssetEvent<VoxelVolume>>,
     voxel_entities: HashMap<Handle<VoxelVolume>, VoxelEntities>,
 }
 
 #[derive(Default)]
 pub struct VoxelResourceProviderState {
-    voxel_volume_event_reader: EventReader<AssetEvent<VoxelVolume>>,
     voxel_entities: HashMap<Handle<VoxelVolume>, VoxelEntities>,
 }
 
@@ -140,10 +135,9 @@ fn remove_current_voxel_resources(
 pub fn voxel_node_system(
     mut state: Local<VoxelVolumeNodeState>,
     render_resource_context: Res<Box<dyn RenderResourceContext>>,
-    mut render_resource_bindings: ResMut<RenderResourceBindings>,
     // TODO: this write on RenderResourceBindings will prevent this system from running in parallel with other systems that do the same
     voxel_volumes: Res<Assets<VoxelVolume>>,
-    voxel_events: Res<Events<AssetEvent<VoxelVolume>>>,
+    mut voxel_events: EventReader<AssetEvent<VoxelVolume>>,
     mut queries: QuerySet<(
         Query<&mut RenderPipelines, With<Handle<VoxelVolume>>>,
         Query<(Entity, &Handle<VoxelVolume>, &mut RenderPipelines), Changed<Handle<VoxelVolume>>>,
@@ -153,7 +147,7 @@ pub fn voxel_node_system(
     let mut changed_voxel_volumes = HashSet::default();
     let render_resource_context = &**render_resource_context;
 
-    for event in state.voxel_volume_event_reader.iter(&voxel_events) {
+    for event in voxel_events.iter() {
         match event {
             AssetEvent::Created { ref handle } => {
                 changed_voxel_volumes.insert(handle.clone_weak());
@@ -179,7 +173,7 @@ pub fn voxel_node_system(
             if let Some(RenderResourceId::Buffer(staging_buffer)) =
                 render_resource_context.get_asset_resource(changed_voxel_volume_handle, VOXEL_VOLUME_DATA_STAGING_BUFFER_ID)
             {
-                render_resource_context.map_buffer(staging_buffer)
+                render_resource_context.map_buffer(staging_buffer, BufferMapMode::Write)
             } else {
                 let size_staging_buffer = render_resource_context.create_buffer(BufferInfo {
                     size: std::mem::size_of::<[u32; 3]>(),

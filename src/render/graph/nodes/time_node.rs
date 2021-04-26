@@ -1,11 +1,4 @@
-use bevy::{
-    prelude::*,
-    render::{
-        render_graph::{SystemNode, CommandQueue, Node, ResourceSlots},
-        renderer::{RenderResourceBindings, BufferUsage, RenderResourceContext, BufferInfo, RenderResourceBinding, BufferId, RenderContext}
-    },
-    ecs::{ResMut, Res, Local, Commands, System, World, Resources}
-};
+use bevy::{prelude::*, render::{render_graph::{SystemNode, CommandQueue, Node, ResourceSlots}, renderer::{BufferId, BufferInfo, BufferMapMode, BufferUsage, RenderContext, RenderResourceBinding, RenderResourceBindings, RenderResourceContext}}};
 
 #[derive(Debug)]
 pub struct TimeNode {
@@ -24,7 +17,6 @@ impl Node for TimeNode {
     fn update(
         &mut self,
         _world: &World,
-        _resources: &Resources,
         render_context: &mut dyn RenderContext,
         _input: &ResourceSlots,
         _output: &mut ResourceSlots,
@@ -34,16 +26,14 @@ impl Node for TimeNode {
 }
 
 impl SystemNode for TimeNode {
-    fn get_system(&self, commands: &mut Commands) -> Box<dyn System<In = (), Out = ()>> {
-        let system = time_node_system.system();
-        commands.insert_local_resource(
-            system.id(),
-            TimeNodeState {
+    fn get_system(&self) -> Box<dyn System<In = (), Out = ()>> {
+        let system = time_node_system.system().config(|config| {
+            config.0 = Some(TimeNodeState {
                 command_queue: self.command_queue.clone(),
                 time_buffer: None,
                 staging_buffer: None,
-            },
-        );
+            })
+        });
         Box::new(system)
     }
 }
@@ -66,7 +56,7 @@ pub fn time_node_system(
     let render_resource_context = &**render_resource_context;
 
     let staging_buffer = if let Some(staging_buffer) = state.staging_buffer {
-        render_resource_context.map_buffer(staging_buffer);
+        render_resource_context.map_buffer(staging_buffer, BufferMapMode::Write);
         staging_buffer
     } else {
         let size = std::mem::size_of::<f64>();

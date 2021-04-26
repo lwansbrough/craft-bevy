@@ -15,13 +15,13 @@ pub fn network_message_listener_system/*<TComponent: 'static + Send + Sync>*/(
     ci: Res<ConnectionInfo>,
     net: Res<NetworkResource>,
     mut state: ResMut<NetworkEventListenerState>,
-    network_events: Res<Events<NetworkEvent>>,
-    mut command_frame_events: ResMut<Events<CommandFrameEvent>>,
-    mut state_frame_events: ResMut<Events<StateFrameEvent>>,
-    mut entity_spawn_events: ResMut<Events<EntitySpawnEvent>>,
+    mut network_events: EventReader<NetworkEvent>,
+    mut command_frame_events: EventWriter<CommandFrameEvent>,
+    mut state_frame_events: EventWriter<StateFrameEvent>,
+    mut entity_spawn_events: EventWriter<EntitySpawnEvent>,
     mut clients: ResMut<Clients>
 ) {
-    for event in state.network_events.iter(&network_events) {
+    for event in network_events.iter() {
         println!("Received a NetworkEvent: {:?}", event);
         match event {
             NetworkEvent::Connected(conn) => {
@@ -92,14 +92,14 @@ fn handle_authorization(
 
     clients.add(conn, Client::new(user_device_id, conn));
 
-    commands.spawn((Synchronize, LocalPlayer, LocalPlayerBody));
+    commands.spawn().insert_bundle((Synchronize, LocalPlayer, LocalPlayerBody));
 }
 
 fn handle_command_frame_event(
     command_frame: CommandFrame,
     conn: Connection,
     ci: &Res<ConnectionInfo>,
-    command_frame_events: &mut ResMut<Events<CommandFrameEvent>>,
+    mut command_frame_events: &mut EventWriter<CommandFrameEvent>,
     clients: &mut ResMut<Clients>
 ) {
     // Only handle command frames on the server
@@ -121,7 +121,7 @@ fn handle_state_frame_event(
     state_frame: StateFrame,
     conn: Connection,
     ci: &Res<ConnectionInfo>,
-    state_frame_events: &mut ResMut<Events<StateFrameEvent>>
+    mut state_frame_events: &mut EventWriter<StateFrameEvent>
 ) {
     // Only handle authoritative state frames on the client
     if !ci.is_client() {
@@ -139,7 +139,7 @@ fn handle_entity_spawn_event(
     spawn: EntitySpawn,
     conn: Connection,
     ci: &Res<ConnectionInfo>,
-    entity_spawn_events: &mut ResMut<Events<EntitySpawnEvent>>
+    entity_spawn_events: &mut EventWriter<EntitySpawnEvent>
 ) {
     // Only handle entity spawn events on the client
     if !ci.is_client() {

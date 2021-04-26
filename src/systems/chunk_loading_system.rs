@@ -5,7 +5,7 @@ use crate::{LocalPlayerBody, VOXELS_PER_METER, VoxelBundle, VoxelVolume, resourc
 
 /// This system prints out all mouse events as they come in
 pub fn chunk_loading_system(
-    commands: &mut Commands,
+    mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials_standard: ResMut<Assets<StandardMaterial>>,
     mut voxel_volumes: ResMut<Assets<VoxelVolume>>,
@@ -44,7 +44,7 @@ pub fn chunk_loading_system(
                 z as f32 * world_generator.chunk_size() as f32 / VOXELS_PER_METER
             );
             
-            commands.spawn(voxel_bundle);
+            commands.spawn().insert_bundle(voxel_bundle);
         }
     }
 }
