@@ -7,7 +7,5 @@ use crate::models::*;
 
 #[derive(Default)]
 pub struct WindowResizeEventListenerState {
-    pub resolution: Option<[f32; 2]>,
-    pub create_events: EventReader<CreateWindow>,
-    pub resize_events: EventReader<WindowResized>
+    pub resolution: Option<[f32; 2]>
 }

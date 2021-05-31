@@ -1,8 +1,7 @@
 use base::node::MAIN_PASS;
-use bevy::{asset::Assets, ecs::Resources, prelude::{Color, HandleUntyped, StandardMaterial, Texture}, reflect::{TypeUuid}, render::{camera::ActiveCameras, pass::{LoadOp, Operations, PassDescriptor, RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor, TextureAttachment}, pipeline::PipelineDescriptor, render_graph::{AssetRenderResourcesNode, CameraNode, PassNode, RenderGraph, RenderResourcesNode, base}, shader::Shader, texture::{Extent3d, SamplerDescriptor, TextureDescriptor, TextureDimension, TextureFormat, TextureUsage}}, transform::prelude::GlobalTransform, window::Windows};
+use bevy::{asset::Assets, prelude::{Color, HandleUntyped, StandardMaterial, Texture, World}, reflect::{TypeUuid}, render::{camera::ActiveCameras, pass::{LoadOp, Operations, PassDescriptor, RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor, TextureAttachment}, pipeline::PipelineDescriptor, render_graph::{AssetRenderResourcesNode, CameraNode, PassNode, RenderGraph, RenderResourcesNode, base}, shader::Shader, texture::{Extent3d, SamplerDescriptor, TextureDescriptor, TextureDimension, TextureFormat, TextureUsage}}, transform::prelude::GlobalTransform, window::Windows};
 
 use nodes::TimeNode;
-use nodes::ResolutionNode;
 
 use self::nodes::VoxelVolumeNode;
 use self::nodes::TextureNode;
@@ -16,7 +15,6 @@ pub const RENDER_TEXTURE_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(Te
 
 pub mod node {
     pub const TIME: &str = "time";
-    pub const RESOLUTION: &str = "resolution";
     pub const TRANSFORM: &str = "transform";
     pub const VOXEL_VOLUME: &str = "voxel_volume";
     pub const TEXTURE_NODE: &str = "texture_node";
@@ -28,7 +26,6 @@ pub mod node {
 
 pub mod uniform {
     pub const TIME: &str = "Time";
-    pub const RESOLUTION: &str = "Resolution";
 }
 
 pub mod storage {
@@ -38,8 +35,10 @@ pub mod storage {
 #[derive(Default)]
 pub struct GBufferPass;
 
-pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
-    let mut active_cameras = resources.get_mut::<ActiveCameras>().unwrap();
+pub(crate) fn add_voxel_graph(world: &mut World) {
+    let world = world.cell();
+    let mut graph = world.get_resource_mut::<RenderGraph>().unwrap();
+    let mut active_cameras = world.get_resource_mut::<ActiveCameras>().unwrap();
 
     let mut gbuffer_pass_node = PassNode::<&GBufferPass>::new(PassDescriptor {
         color_attachments: vec![RenderPassColorAttachmentDescriptor {
@@ -75,7 +74,6 @@ pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
         AssetRenderResourcesNode::<StandardMaterial>::new(true),
     );
     graph.add_system_node(node::TIME, TimeNode::new());
-    graph.add_system_node(node::RESOLUTION, ResolutionNode::new());
     graph.add_system_node(node::VOXEL_VOLUME, VoxelVolumeNode::new());
     graph.add_system_node(node::GBUFFER_CAMERA, CameraNode::new(node::GBUFFER_CAMERA));
 
@@ -118,7 +116,6 @@ pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
     );
 
     graph.add_node_edge(node::TIME, node::GBUFFER_PASS).unwrap();
-    graph.add_node_edge(node::RESOLUTION, node::GBUFFER_PASS).unwrap();
     graph.add_node_edge(node::VOXEL_VOLUME, node::GBUFFER_PASS).unwrap();
     graph.add_node_edge(node::TRANSFORM, node::GBUFFER_PASS).unwrap();
     graph.add_node_edge(node::TEXTURE_NODE, node::GBUFFER_PASS).unwrap();
@@ -130,14 +127,18 @@ pub(crate) fn add_voxel_graph(graph: &mut RenderGraph, resources: &Resources) {
     graph.add_node_edge(node::TRANSFORM, base::node::MAIN_PASS).unwrap();
     graph.add_node_edge(node::GBUFFER_PASS, base::node::MAIN_PASS).unwrap();
 
-    let mut shaders = resources.get_mut::<Assets<Shader>>().unwrap();
-    let mut pipelines = resources.get_mut::<Assets<PipelineDescriptor>>().unwrap();
+    let mut shaders = world.get_resource_mut::<Assets<Shader>>().unwrap();
+    let mut pipelines = world.get_resource_mut::<Assets<PipelineDescriptor>>().unwrap();
+
+    let quad_pipeline = pipeline::build_quad_pipeline(&mut shaders);
+    let voxel_pipeline = pipeline::build_voxel_pipeline(&mut shaders);
+
     pipelines.set_untracked(
         pipeline::QUAD_PIPELINE_HANDLE,
-        pipeline::build_quad_pipeline(&mut shaders),
+        quad_pipeline,
     );
     pipelines.set_untracked(
         pipeline::VOXEL_PIPELINE_HANDLE,
-        pipeline::build_voxel_pipeline(&mut shaders),
+        voxel_pipeline,
     );
 }

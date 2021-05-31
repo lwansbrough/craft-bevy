@@ -137,7 +137,6 @@ pub struct VoxelEntities {
 
 #[derive(Default)]
 pub struct VoxelResourceProviderState {
-    voxel_volume_event_reader: EventReader<AssetEvent<VoxelVolume>>,
     voxel_entities: HashMap<Handle<VoxelVolume>, VoxelEntities>,
 }
 
@@ -145,7 +144,7 @@ pub fn voxel_resource_provider_system(
     mut state: Local<VoxelResourceProviderState>,
     render_resource_context: Res<Box<dyn RenderResourceContext>>,
     voxel_volumes: Res<Assets<VoxelVolume>>,
-    voxel_events: Res<Events<AssetEvent<VoxelVolume>>>,
+    mut voxel_events: EventReader<AssetEvent<VoxelVolume>>,
     mut queries: QuerySet<(
         Query<&mut RenderPipelines, With<Handle<VoxelVolume>>>,
         Query<(Entity, &Handle<VoxelVolume>, &mut RenderPipelines), Changed<Handle<VoxelVolume>>>,
@@ -153,7 +152,7 @@ pub fn voxel_resource_provider_system(
 ) {
     let mut changed_voxel_volumes = HashSet::default();
     let render_resource_context = &**render_resource_context;
-    for event in state.voxel_volume_event_reader.iter(&voxel_events) {
+    for event in voxel_events.iter() {
         match event {
             AssetEvent::Created { ref handle } => {
                 changed_voxel_volumes.insert(handle.clone_weak());

@@ -2,9 +2,9 @@ use bevy::{
     asset::{Assets, HandleUntyped},
     render::{
         pipeline::{
-            BlendDescriptor, BlendFactor, BlendOperation, ColorStateDescriptor, ColorWrite,
-            CompareFunction, CullMode, DepthStencilStateDescriptor, FrontFace, PipelineDescriptor,
-            RasterizationStateDescriptor, StencilStateDescriptor, StencilStateFaceDescriptor
+            BlendState, BlendFactor, BlendOperation, ColorTargetState, ColorWrite,
+            CompareFunction, CullMode, DepthBiasState, DepthStencilState, PipelineDescriptor,
+            StencilState, StencilFaceState
         },
         shader::{Shader, ShaderStage, ShaderStages}, texture::TextureFormat,
     },
@@ -16,20 +16,26 @@ pub const VOXEL_PIPELINE_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(Pi
 
 pub(crate) fn build_voxel_pipeline(shaders: &mut Assets<Shader>) -> PipelineDescriptor {
     PipelineDescriptor {
-        rasterization_state: Some(RasterizationStateDescriptor {
+        primitive: bevy::render::pipeline::PrimitiveState {
             cull_mode: CullMode::Front,
             ..Default::default()
-        }),
-        depth_stencil_state: Some(DepthStencilStateDescriptor {
+        },
+        depth_stencil: Some(DepthStencilState {
             format: TextureFormat::Depth32Float,
             depth_write_enabled: true,
             depth_compare: CompareFunction::Less,
-            stencil: StencilStateDescriptor {
-                front: StencilStateFaceDescriptor::IGNORE,
-                back: StencilStateFaceDescriptor::IGNORE,
+            stencil: StencilState {
+                front: StencilFaceState::IGNORE,
+                back: StencilFaceState::IGNORE,
                 read_mask: 0,
                 write_mask: 0,
             },
+            bias: DepthBiasState {
+                constant: 0,
+                slope_scale: 0.0,
+                clamp: 0.0
+            },
+            clamp_depth: false
         }),
         ..PipelineDescriptor::default_config(ShaderStages {
             vertex: shaders.add(Shader::from_glsl(
@@ -46,33 +52,35 @@ pub(crate) fn build_voxel_pipeline(shaders: &mut Assets<Shader>) -> PipelineDesc
 
 pub(crate) fn build_quad_pipeline(shaders: &mut Assets<Shader>) -> PipelineDescriptor {
     PipelineDescriptor {
-        rasterization_state: Some(RasterizationStateDescriptor {
-            front_face: FrontFace::Ccw,
+        primitive: bevy::render::pipeline::PrimitiveState {
             cull_mode: CullMode::Back,
-            depth_bias: 0,
-            depth_bias_slope_scale: 0.0,
-            depth_bias_clamp: 0.0,
-            clamp_depth: false,
-        }),
-        depth_stencil_state: Some(DepthStencilStateDescriptor {
+            ..Default::default()
+        },
+        depth_stencil: Some(DepthStencilState {
             format: TextureFormat::Depth32Float,
             depth_write_enabled: false,
             depth_compare: CompareFunction::Less,
-            stencil: StencilStateDescriptor {
-                front: StencilStateFaceDescriptor::IGNORE,
-                back: StencilStateFaceDescriptor::IGNORE,
+            stencil: StencilState {
+                front: StencilFaceState::IGNORE,
+                back: StencilFaceState::IGNORE,
                 read_mask: 0,
                 write_mask: 0,
             },
+            bias: DepthBiasState {
+                constant: 0,
+                slope_scale: 0.0,
+                clamp: 0.0
+            },
+            clamp_depth: false
         }),
-        color_states: vec![ColorStateDescriptor {
+        color_target_states: vec![ColorTargetState {
             format: TextureFormat::default(),
-            color_blend: BlendDescriptor {
+            color_blend: BlendState {
                 src_factor: BlendFactor::SrcAlpha,
                 dst_factor: BlendFactor::OneMinusSrcAlpha,
                 operation: BlendOperation::Add,
             },
-            alpha_blend: BlendDescriptor {
+            alpha_blend: BlendState {
                 src_factor: BlendFactor::One,
                 dst_factor: BlendFactor::One,
                 operation: BlendOperation::Add,

@@ -1,6 +1,6 @@
+use bevy::{ecs::system::Command, prelude::*};
 use serde::{Serialize, Deserialize};
 use std::marker::{PhantomData};
-use bevy::ecs::{Command, Bundle, Entity, Resources, World};
 
 use crate::models::*;
 
@@ -9,9 +9,9 @@ pub struct Synchronize;
 pub trait Synchronizable : 'static + Send + Sync + Sized {
     fn type_id() -> u8;
     fn instance_type_id(&self) -> u8 { Self::type_id() }
-    fn spawn(world: &mut World, resources: &mut Resources, entity: Entity);
-    fn author_serialized_state(&self, resources: &mut Resources) -> Vec<u8>;
-    fn consume_serialized_state(&mut self, state: &Vec<u8>, resources: &mut Resources);
+    fn spawn(world: &mut World, entity: Entity);
+    fn author_serialized_state(&self, world: &mut World) -> Vec<u8>;
+    fn consume_serialized_state(&mut self, state: &Vec<u8>, world: &mut World);
 }
 
 pub struct SynchronizableStateAuthoring<TComponent> {
@@ -21,19 +21,19 @@ pub struct SynchronizableStateAuthoring<TComponent> {
 }
 
 impl<TComponent> Command for SynchronizableStateAuthoring<TComponent> where TComponent: Synchronizable {
-    fn write(self: Box<Self>, world: &mut World, resources: &mut Resources) {
-        let component = world.get::<TComponent>(self.entity).unwrap();
-        let component_type_id = component.instance_type_id();
-        let serialized_state = component.author_serialized_state(resources);
+    fn write(self: Box<Self>, world: &mut World) {
+        // let component = world.get::<TComponent>(self.entity).unwrap();
+        // let component_type_id = component.instance_type_id();
+        // let serialized_state = component.author_serialized_state(world);
 
-        let mut synchronized = world.get_mut::<Synchronized<TComponent>>(self.entity).unwrap();
+        // let mut synchronized = world.get_mut::<Synchronized<TComponent>>(self.entity).unwrap();
 
-        synchronized.state_frames().push(StateFrame {
-            entity_id: self.entity.id(),
-            component_type_id,
-            frame: self.frame,
-            state: serialized_state
-        })
+        // synchronized.state_frames().push(StateFrame {
+        //     entity_id: self.entity.id(),
+        //     component_type_id,
+        //     frame: self.frame,
+        //     state: serialized_state
+        // })
     }
 }
 
@@ -44,28 +44,28 @@ pub struct SynchronizableStateConsumption<TComponent> {
 }
 
 impl<TComponent> Command for SynchronizableStateConsumption<TComponent> where TComponent: Synchronizable {
-    fn write(self: Box<Self>, world: &mut World, resources: &mut Resources) {
+    fn write(self: Box<Self>, world: &mut World) {
 
-        if let Err(_) = world.get_mut::<Synchronized<TComponent>>(self.entity) {
-            return;
-        }
+        // if world.get_mut::<Synchronized<TComponent>>(self.entity).is_none() {
+        //     return;
+        // }
 
-        if let Ok(mut component) = world.get_mut::<TComponent>(self.entity) {
-            component.consume_serialized_state(&self.state_frame.state, resources);
-        } else {
-            TComponent::spawn(world, resources, self.entity);
-            let mut component = world.get_mut::<TComponent>(self.entity).unwrap();
-            component.consume_serialized_state(&self.state_frame.state, resources);
-        }
+        // if let Some(mut component) = world.get_mut::<TComponent>(self.entity) {
+        //     component.consume_serialized_state(&self.state_frame.state, world);
+        // } else {
+        //     TComponent::spawn(world, self.entity);
+        //     let mut component = world.get_mut::<TComponent>(self.entity).unwrap();
+        //     component.consume_serialized_state(&self.state_frame.state, world);
+        // }
 
-        if let Ok(mut synchronized) = world.get_mut::<Synchronized<TComponent>>(self.entity) {
-            synchronized.state_frames().push(StateFrame {
-                entity_id: self.entity.id(),
-                component_type_id: self.state_frame.component_type_id,
-                state: self.state_frame.state,
-                frame: self.state_frame.frame
-            });
-        }
+        // if let Some(mut synchronized) = world.get_mut::<Synchronized<TComponent>>(self.entity) {
+        //     synchronized.state_frames().push(StateFrame {
+        //         entity_id: self.entity.id(),
+        //         component_type_id: self.state_frame.component_type_id,
+        //         state: self.state_frame.state,
+        //         frame: self.state_frame.frame
+        //     });
+        // }
     }
 }
 

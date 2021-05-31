@@ -48,7 +48,6 @@ impl Node for TextureNode {
     fn update(
         &mut self,
         _world: &World,
-        _resources: &Resources,
         render_context: &mut dyn bevy::render::renderer::RenderContext,
         _input: &bevy::render::render_graph::ResourceSlots,
         output: &mut bevy::render::render_graph::ResourceSlots,

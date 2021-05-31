@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::{BTreeMap, BTreeSet}, mem, ops::DerefMut};
 
-use bevy::{math::{Vec3Mask, Vec3Swizzles, Vec4Swizzles}, prelude::*, render::{camera::{ActiveCameras, Camera}, render_graph::base::camera}};
+use bevy::{math::{BVec3, Vec3Swizzles, Vec4Swizzles}, prelude::*, render::{camera::{ActiveCameras, Camera}, render_graph::base::camera}};
 use bincode::Options;
 use crate::{VOXELS_PER_METER, VoxelData, VoxelVolume, resources::*};
 
@@ -8,7 +8,7 @@ const MAX_RAY_STEPS: i32 = 512;
 
 /// This system prints out all mouse events as they come in
 pub fn player_focus(
-    commands: &mut Commands,
+    mut commands: Commands,
     mut voxel_volumes: ResMut<Assets<VoxelVolume>>,
     mut player_focus: ResMut<PlayerFocus>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
@@ -24,8 +24,8 @@ pub fn player_focus(
     // 4. Iterate over intersections from near to far, ray marching through each volume from the
     // intersection point until we find a non-empty voxel
 
-    let (camera, camera_transform) = if let Some(entity) = active_cameras.get(camera::CAMERA_3D) {
-        camera_query.get(entity).unwrap()
+    let (camera, camera_transform) = if let Some(cam) = active_cameras.get(camera::CAMERA_3D) {
+        camera_query.get(cam.entity.unwrap()).unwrap()
     } else {
         return;
     };
@@ -76,7 +76,7 @@ pub fn player_focus(
         let mut side_dist: Vec3 = (ray_direction.signum() * (map_pos.signum() - ray_position) + (ray_direction.signum() * 0.5) + Vec3::new(0.5, 0.5, 0.5)) * delta_dist; 
         
         let mut voxel: Option<VoxelData> = None;
-        let mut mask: Vec3Mask;
+        let mut mask: BVec3;
 
         for _ in 0..MAX_RAY_STEPS {
             if voxel.is_some() || map_pos.cmpge(voxel_volume.size).any() || map_pos.cmple(Vec3::zero()).any() {
@@ -86,8 +86,8 @@ pub fn player_focus(
             voxel = voxel_volume.voxel(map_pos);
 
             mask = side_dist.cmple(side_dist.yzx().min(side_dist.zxy()));
-            side_dist += mask.select(Vec3::one(), Vec3::zero()) * delta_dist;
-            map_pos += mask.select(Vec3::one(), Vec3::zero()) * ray_step;
+            side_dist += Vec3::select(mask, Vec3::one(), Vec3::zero()) * delta_dist;
+            map_pos += Vec3::select(mask, Vec3::one(), Vec3::zero()) * ray_step;
         }
 
         if let Some(v) = voxel {

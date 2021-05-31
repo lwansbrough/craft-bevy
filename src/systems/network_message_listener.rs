@@ -1,152 +1,152 @@
-use std::net::SocketAddr;
-use bevy::{
-    prelude::*,
-};
-use bevy_prototype_networking_laminar::{Connection, NetworkResource, NetworkDelivery, NetworkEvent};
-use serde::{Serialize};
-use crate::components::*;
-use crate::events::*;
-use crate::models::*;
-use crate::resources::*;
+// use std::net::SocketAddr;
+// use bevy::{
+//     prelude::*,
+// };
+// use bevy_prototype_networking_laminar::{Connection, NetworkResource, NetworkDelivery, NetworkEvent};
+// use serde::{Serialize};
+// use crate::components::*;
+// use crate::events::*;
+// use crate::models::*;
+// use crate::resources::*;
 
-/// Listen for network messages (server + client)
-pub fn network_message_listener_system/*<TComponent: 'static + Send + Sync>*/(
-    commands: &mut Commands,
-    ci: Res<ConnectionInfo>,
-    net: Res<NetworkResource>,
-    mut state: ResMut<NetworkEventListenerState>,
-    network_events: Res<Events<NetworkEvent>>,
-    mut command_frame_events: ResMut<Events<CommandFrameEvent>>,
-    mut state_frame_events: ResMut<Events<StateFrameEvent>>,
-    mut entity_spawn_events: ResMut<Events<EntitySpawnEvent>>,
-    mut clients: ResMut<Clients>
-) {
-    for event in state.network_events.iter(&network_events) {
-        println!("Received a NetworkEvent: {:?}", event);
-        match event {
-            NetworkEvent::Connected(conn) => {
-                if ci.is_client() {
-                    net.send(
-                        *ci.server_addr(),
-                        &bincode::serialize(&NetMessage::Authorize(String::from("test"))).unwrap(),
-                        NetworkDelivery::ReliableOrdered(Some(2))
-                    );
-                }
+// /// Listen for network messages (server + client)
+// pub fn network_message_listener_system/*<TComponent: 'static + Send + Sync>*/(
+//     commands: &mut Commands,
+//     ci: Res<ConnectionInfo>,
+//     net: Res<NetworkResource>,
+//     mut state: ResMut<NetworkEventListenerState>,
+//     mut network_events: EventReader<NetworkEvent>,
+//     mut command_frame_events: EventWriter<CommandFrameEvent>,
+//     mut state_frame_events: EventWriter<StateFrameEvent>,
+//     mut entity_spawn_events: EventWriter<EntitySpawnEvent>,
+//     mut clients: ResMut<Clients>
+// ) {
+//     for event in network_events.iter() {
+//         println!("Received a NetworkEvent: {:?}", event);
+//         match event {
+//             NetworkEvent::Connected(conn) => {
+//                 if ci.is_client() {
+//                     net.send(
+//                         *ci.server_addr(),
+//                         &bincode::serialize(&NetMessage::Authorize(String::from("test"))).unwrap(),
+//                         NetworkDelivery::ReliableOrdered(Some(2))
+//                     );
+//                 }
 
-                if ci.is_server() {
-                    net.send(
-                        conn.addr,
-                        &bincode::serialize(&NetMessage::None).unwrap(),
-                        NetworkDelivery::UnreliableUnordered
-                    );
-                }
-            },
-            NetworkEvent::Message(conn, msg) => {
-                let msg = bincode::deserialize::<NetMessage>(&msg[..]).unwrap();
-                match msg {
-                    NetMessage::Authorize(token) => handle_authorization(
-                        token,
-                        *conn,
-                        &net,
-                        &mut clients,
-                        commands
-                    ),
-                    NetMessage::CommandFrame(command_frame) => handle_command_frame_event(
-                        command_frame,
-                        *conn,
-                        &ci,
-                        &mut command_frame_events,
-                        &mut clients
-                    ),
-                    NetMessage::AuthoritativeStateFrame(state_frame) => handle_state_frame_event(
-                        state_frame,
-                        *conn,
-                        &ci,
-                        &mut state_frame_events
-                    ),
-                    NetMessage::EntitySpawn(entity_spawn) => handle_entity_spawn_event(
-                        entity_spawn,
-                        *conn,
-                        &ci,
-                        &mut entity_spawn_events
-                    ),
-                    _ => {}
-                }
-            },
-            _ => {}
-        }
-    }
-}
+//                 if ci.is_server() {
+//                     net.send(
+//                         conn.addr,
+//                         &bincode::serialize(&NetMessage::None).unwrap(),
+//                         NetworkDelivery::UnreliableUnordered
+//                     );
+//                 }
+//             },
+//             NetworkEvent::Message(conn, msg) => {
+//                 let msg = bincode::deserialize::<NetMessage>(&msg[..]).unwrap();
+//                 match msg {
+//                     NetMessage::Authorize(token) => handle_authorization(
+//                         token,
+//                         *conn,
+//                         &net,
+//                         &mut clients,
+//                         commands
+//                     ),
+//                     NetMessage::CommandFrame(command_frame) => handle_command_frame_event(
+//                         command_frame,
+//                         *conn,
+//                         &ci,
+//                         &mut command_frame_events,
+//                         &mut clients
+//                     ),
+//                     NetMessage::AuthoritativeStateFrame(state_frame) => handle_state_frame_event(
+//                         state_frame,
+//                         *conn,
+//                         &ci,
+//                         &mut state_frame_events
+//                     ),
+//                     NetMessage::EntitySpawn(entity_spawn) => handle_entity_spawn_event(
+//                         entity_spawn,
+//                         *conn,
+//                         &ci,
+//                         &mut entity_spawn_events
+//                     ),
+//                     _ => {}
+//                 }
+//             },
+//             _ => {}
+//         }
+//     }
+// }
 
-fn handle_authorization(
-    token: String,
-    conn: Connection,
-    net: &Res<NetworkResource>,
-    clients: &mut ResMut<Clients>,
-    mut commands: &mut Commands
-) {
-    // TODO: check auth token
-    let user_device_id = 123u128;
+// fn handle_authorization(
+//     token: String,
+//     conn: Connection,
+//     net: &Res<NetworkResource>,
+//     clients: &mut ResMut<Clients>,
+//     mut commands: &mut Commands
+// ) {
+//     // TODO: check auth token
+//     let user_device_id = 123u128;
 
-    println!("Client authorized with token {}", token);
+//     println!("Client authorized with token {}", token);
 
-    clients.add(conn, Client::new(user_device_id, conn));
+//     clients.add(conn, Client::new(user_device_id, conn));
 
-    commands.spawn((Synchronize, LocalPlayer, LocalPlayerBody));
-}
+//     commands.spawn().insert_bundle((Synchronize, LocalPlayer, LocalPlayerBody));
+// }
 
-fn handle_command_frame_event(
-    command_frame: CommandFrame,
-    conn: Connection,
-    ci: &Res<ConnectionInfo>,
-    command_frame_events: &mut ResMut<Events<CommandFrameEvent>>,
-    clients: &mut ResMut<Clients>
-) {
-    // Only handle command frames on the server
-    if !ci.is_server() {
-        return;
-    }
+// fn handle_command_frame_event(
+//     command_frame: CommandFrame,
+//     conn: Connection,
+//     ci: &Res<ConnectionInfo>,
+//     mut command_frame_events: &mut EventWriter<CommandFrameEvent>,
+//     clients: &mut ResMut<Clients>
+// ) {
+//     // Only handle command frames on the server
+//     if !ci.is_server() {
+//         return;
+//     }
 
-    println!("{:?}", command_frame.input);
+//     println!("{:?}", command_frame.input);
 
-    if let Some(client_id) = clients.get_client_id(conn) {
-        command_frame_events.send(CommandFrameEvent {
-            from: *client_id,
-            command_frame
-        });
-    }
-}
+//     if let Some(client_id) = clients.get_client_id(conn) {
+//         command_frame_events.send(CommandFrameEvent {
+//             from: *client_id,
+//             command_frame
+//         });
+//     }
+// }
 
-fn handle_state_frame_event(
-    state_frame: StateFrame,
-    conn: Connection,
-    ci: &Res<ConnectionInfo>,
-    state_frame_events: &mut ResMut<Events<StateFrameEvent>>
-) {
-    // Only handle authoritative state frames on the client
-    if !ci.is_client() {
-        return;
-    }
+// fn handle_state_frame_event(
+//     state_frame: StateFrame,
+//     conn: Connection,
+//     ci: &Res<ConnectionInfo>,
+//     mut state_frame_events: &mut EventWriter<StateFrameEvent>
+// ) {
+//     // Only handle authoritative state frames on the client
+//     if !ci.is_client() {
+//         return;
+//     }
 
-    println!("{:?}", state_frame.state);
+//     println!("{:?}", state_frame.state);
 
-    state_frame_events.send(StateFrameEvent {
-        state_frame
-    });
-}
+//     state_frame_events.send(StateFrameEvent {
+//         state_frame
+//     });
+// }
 
-fn handle_entity_spawn_event(
-    spawn: EntitySpawn,
-    conn: Connection,
-    ci: &Res<ConnectionInfo>,
-    entity_spawn_events: &mut ResMut<Events<EntitySpawnEvent>>
-) {
-    // Only handle entity spawn events on the client
-    if !ci.is_client() {
-        return;
-    }
+// fn handle_entity_spawn_event(
+//     spawn: EntitySpawn,
+//     conn: Connection,
+//     ci: &Res<ConnectionInfo>,
+//     entity_spawn_events: &mut EventWriter<EntitySpawnEvent>
+// ) {
+//     // Only handle entity spawn events on the client
+//     if !ci.is_client() {
+//         return;
+//     }
 
-    entity_spawn_events.send(EntitySpawnEvent {
-        spawn
-    });
-}
+//     entity_spawn_events.send(EntitySpawnEvent {
+//         spawn
+//     });
+// }

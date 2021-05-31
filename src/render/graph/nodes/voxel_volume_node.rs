@@ -1,5 +1,4 @@
-use bevy::{core::{AsBytes, Byteable}, ecs::{ResMut, Res, Local, Commands, System, World, Resources}, prelude::*, render::{render_graph::{SystemNode, CommandQueue, Node, ResourceSlots}, renderer::{BufferId, BufferInfo, BufferUsage, RenderContext, RenderResourceBinding, RenderResourceBindings, RenderResourceContext, RenderResourceId}}, utils::{HashMap, HashSet}};
-
+use bevy::{core::{AsBytes, Byteable}, prelude::*, render::{render_graph::{SystemNode, CommandQueue, Node, ResourceSlots}, renderer::{BufferId, BufferInfo, BufferMapMode, BufferUsage, RenderContext, RenderResourceBinding, RenderResourceBindings, RenderResourceContext, RenderResourceId}, texture::{Extent3d, SamplerDescriptor, TextureDescriptor, TextureFormat, TextureUsage}}, utils::{HashMap, HashSet}};
 use crate::VoxelVolume;
 
 #[derive(Debug)]
@@ -19,7 +18,6 @@ impl Node for VoxelVolumeNode {
     fn update(
         &mut self,
         _world: &World,
-        _resources: &Resources,
         render_context: &mut dyn RenderContext,
         _input: &ResourceSlots,
         _output: &mut ResourceSlots,
@@ -29,15 +27,13 @@ impl Node for VoxelVolumeNode {
 }
 
 impl SystemNode for VoxelVolumeNode {
-    fn get_system(&self, commands: &mut Commands) -> Box<dyn System<In = (), Out = ()>> {
-        let system = voxel_node_system.system();
-        commands.insert_local_resource(
-            system.id(),
-            VoxelVolumeNodeState {
+    fn get_system(&self) -> Box<dyn System<In = (), Out = ()>> {
+        let system = voxel_node_system.system().config(|config| {
+            config.0 = Some(VoxelVolumeNodeState {
                 command_queue: self.command_queue.clone(),
                 ..Default::default()
-            },
-        );
+            })
+        });
         Box::new(system)
     }
 }
@@ -50,7 +46,6 @@ pub struct VoxelEntities {
 #[derive(Default)]
 pub struct VoxelVolumeNodeState {
     command_queue: CommandQueue,
-    voxel_volume_event_reader: EventReader<AssetEvent<VoxelVolume>>,
     voxel_entities: HashMap<Handle<VoxelVolume>, VoxelEntities>,
     voxel_staging_buffers: HashMap<Handle<VoxelVolume>, BufferId>,
     voxel_buffers: HashMap<Handle<VoxelVolume>, BufferId>,
@@ -86,7 +81,7 @@ pub fn voxel_node_system(
     mut render_resource_bindings: ResMut<RenderResourceBindings>,
     // TODO: this write on RenderResourceBindings will prevent this system from running in parallel with other systems that do the same
     voxel_volumes: Res<Assets<VoxelVolume>>,
-    voxel_events: Res<Events<AssetEvent<VoxelVolume>>>,
+    mut voxel_events: EventReader<AssetEvent<VoxelVolume>>,
     // mut queries: QuerySet<(
     //     Query<&mut RenderPipelines, With<Handle<VoxelVolume>>>,
     //     Query<(Entity, &Handle<VoxelVolume>, &mut RenderPipelines), Changed<Handle<VoxelVolume>>>,
@@ -97,7 +92,7 @@ pub fn voxel_node_system(
     let mut changed_voxel_volumes = HashSet::default();
     let render_resource_context = &**render_resource_context;
 
-    for event in state.voxel_volume_event_reader.iter(&voxel_events) {
+    for event in voxel_events.iter() {
         match event {
             AssetEvent::Created { ref handle } => {
                 changed_voxel_volumes.insert(handle.clone_weak());
@@ -131,7 +126,7 @@ pub fn voxel_node_system(
 
             if state.voxel_staging_buffers.contains_key(changed_voxel_volume_handle) {
                 let staging_buffer = *state.voxel_staging_buffers.get(changed_voxel_volume_handle).unwrap();
-                render_resource_context.map_buffer(staging_buffer);
+                render_resource_context.map_buffer(staging_buffer, BufferMapMode::Write)
             } else {
                 let voxel_buffer = render_resource_context.create_buffer(
                     BufferInfo {
@@ -163,7 +158,6 @@ pub fn voxel_node_system(
             };
 
             if let Some(voxel_volume) = voxel_volumes.get(changed_voxel_volume_handle) {
-                println!("writing buffer");
                 let voxels_bytes = &voxel_volume.to_bytes();
                 let voxels_size = voxels_bytes.len();
     
