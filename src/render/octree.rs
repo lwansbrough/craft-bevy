@@ -1,5 +1,4 @@
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
-use bevy::core::Byteable;
 use serde::Serialize;
 
 /// https://developer.nvidia.com/gpugems/gpugems2/part-v-image-oriented-computing/chapter-37-octree-textures-gpu
@@ -11,8 +10,6 @@ pub struct Octree {
     depth_max: u8
     // released_grids: VecDeque<?>
 }
-
-unsafe impl Byteable for Octree {}
 
 impl Octree {
     pub fn new(depth_max: u8) -> Octree {
