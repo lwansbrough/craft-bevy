@@ -18,9 +18,9 @@ struct Collisions {
 var view: View;
 
 [[group(1), binding(0)]]
-var<storage, read> volumes: VoxelVolumes;
+var<storage> volumes: [[access(read)]] VoxelVolumes;
 [[group(1), binding(1)]]
-var<storage, read_write> collisions: Collisions;
+var<storage> collisions: [[access(read_write)]] Collisions;
 
 [[stage(compute), workgroup_size(64)]]
 fn broadphase([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
