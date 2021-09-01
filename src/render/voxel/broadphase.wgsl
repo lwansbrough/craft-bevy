@@ -9,13 +9,18 @@ struct VoxelVolumes {
     transforms: array<mat4x4<f32>>;
 };
 
+[[block]]
+struct Collisions {
+    collisions: array<mat4x4<f32>>;
+};
+
 [[group(0), binding(0)]]
 var view: View;
 
 [[group(1), binding(0)]]
 var<storage, read> volumes: VoxelVolumes;
 [[group(1), binding(1)]]
-var<storage, read_write> collisions: array<u32>;
+var<storage, read_write> collisions: Collisions;
 
 [[stage(compute), workgroup_size(64)]]
 fn broadphase([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {

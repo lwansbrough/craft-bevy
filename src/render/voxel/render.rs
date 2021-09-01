@@ -229,6 +229,8 @@ pub struct VoxelVolumeMeta {
     pub transform_uniforms: DynamicUniformVec<Mat4>,
     pub voxel_transforms_bind_group: FrameSlabMap<BufferId, BindGroup>,
     pub voxel_transforms_bind_group_key: Option<FrameSlabMapKey<BufferId, BindGroup>>,
+    pub raybox_intersections_bind_group: FrameSlabMap<BufferId, BindGroup>,
+    pub raybox_intersections_bind_group_key: Option<FrameSlabMapKey<BufferId, BindGroup>>,
     pub render_texture_bind_group: Option<BindGroup>,
     pub render_texture: Option<GpuImage>
 }
@@ -292,10 +294,23 @@ pub fn queue_voxel_volumes(
             },
         ));
 
+    voxel_volume_meta.raybox_intersections_bind_group.next_frame();
+    voxel_volume_meta.raybox_intersections_bind_group_key =
+        Some(voxel_volume_meta.raybox_intersections_bind_group.get_or_insert_with(
+            transform_uniforms.uniform_buffer().unwrap().id(),
+            || {
+                render_device.create_bind_group(&BindGroupDescriptor {
+                    entries: &[BindGroupEntry {
+                        binding: 1,
+                        resource: transform_uniforms.binding(),
+                    }],
+                    label: None,
+                    layout: &voxel_shaders.voxels_layout,
+                })
+            },
+        ));
 
-    voxel_volume_meta.render_texture = if let Some(render_texture) = voxel_volume_meta.render_texture {
-        Some(render_texture)
-    } else {
+    if voxel_volume_meta.render_texture.is_none() {
         let texture = render_device.create_texture(&TextureDescriptor {
             label: Some("Full Screen Quad"),
             size: Extent3d {
@@ -315,18 +330,16 @@ pub fn queue_voxel_volumes(
         });
         let texture_view = texture.create_view(&TextureViewDescriptor::default());
         
-        Some(GpuImage {
+        voxel_volume_meta.render_texture = Some(GpuImage {
             texture,
             texture_view,
             sampler,
-        })
-    };
+        });
+    }
 
-    voxel_volume_meta.render_texture_bind_group = if let Some(bind_group) = voxel_volume_meta.render_texture_bind_group {
-        Some(bind_group)
-    } else {
-        let gpu_image = voxel_volume_meta.render_texture.unwrap();
-        Some(render_device.create_bind_group(&BindGroupDescriptor {
+    if voxel_volume_meta.render_texture_bind_group.is_none() {
+        let gpu_image = voxel_volume_meta.render_texture.as_ref().unwrap();
+        voxel_volume_meta.render_texture_bind_group = Some(render_device.create_bind_group(&BindGroupDescriptor {
             entries: &[
                 BindGroupEntry {
                     binding: 0,
@@ -339,8 +352,8 @@ pub fn queue_voxel_volumes(
             ],
             label: None,
             layout: &voxel_shaders.render_texture_layout,
-        }))
-    };
+        }));
+    }
 }
 
 pub struct VoxelVolumeNode;

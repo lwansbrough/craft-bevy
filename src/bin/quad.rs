@@ -1,14 +1,14 @@
 use std::net::SocketAddr;
 use std::time::Duration;
 
-use bevy::prelude::*;
-use bevy::{core::AsBytes, prelude::*, render::{camera::{Camera, CameraProjection}, mesh::Indices, pipeline::PrimitiveTopology, renderer::RenderResourceBinding}, window::WindowId};
+use bevy::{PipelinedDefaultPlugins, prelude::*};
+use bevy::{prelude::*, render::{camera::{Camera, CameraProjection}, mesh::Indices, pipeline::PrimitiveTopology, renderer::RenderResourceBinding}, window::WindowId};
 use bevy::{render::renderer::{RenderResourceContext, RenderResourceBindings, BufferUsage, BufferInfo}, app::{ScheduleRunnerSettings}};
 use bevy_rapier3d::physics::{RapierPhysicsPlugin, RigidBodyHandleComponent};
 use bevy_rapier3d::rapier::dynamics::{BodyStatus, RigidBody, RigidBodyBuilder};
 use bevy_rapier3d::rapier::geometry::ColliderBuilder;
 // use bevy_prototype_networking_laminar::{NetworkResource, NetworkingPlugin, NetworkDelivery};
-use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
+// use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
 use noise::{
     *,
     utils::*
@@ -24,18 +24,18 @@ use craft::render::*;
 use craft::render::VoxelRenderPlugin;
 
 fn main() {
-    App::build()
+    App::new()
         .insert_resource(WindowDescriptor {
             vsync: false,
             ..Default::default()
         })
-        .add_plugins(DefaultPlugins)
+        .add_plugins(PipelinedDefaultPlugins)
         .add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         // .add_plugin(bevy::diagnostic::PrintDiagnosticsPlugin::default())
         .init_resource::<WindowResizeEventListenerState>()
-        .init_resource::<PlayerFocus>()
+        // .init_resource::<PlayerFocus>()
         .add_plugin(VoxelRenderPlugin)
-        .add_plugin(FlyCameraPlugin)
+        // .add_plugin(FlyCameraPlugin)
         .add_asset::<VoxelVolume>()
         .insert_resource(WorldGenerator::new(32))
         .insert_resource(WorldData::new())
@@ -58,10 +58,6 @@ fn setup(
 ) {    
     commands
         .spawn()
-        .insert_bundle(QuadBundle::new(&mut meshes, &mut materials_standard));
-    
-    commands
-        .spawn()
         .insert_bundle(PbrBundle {
             material: materials_standard.add(bevy::render::color::Color::GREEN.into()),
             transform: Transform::from_translation(Vec3::new(-3.0, 0.0, 0.0)),
@@ -72,26 +68,6 @@ fn setup(
         .insert_bundle(PerspectiveCameraBundle {
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 12.0)),
             ..Default::default()
-        })
-        .insert(FlyCamera::default());
-
-    let mut gbuffer_camera = PerspectiveCameraBundle {
-        camera: Camera {
-            name: Some(node::GBUFFER_CAMERA.to_string()),
-            // window: WindowId::new(), // otherwise it will use main window size / aspect for calculation of projection matrix
-            ..Default::default()
-        },
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 15.0))
-            .looking_at(Vec3::default(), Vec3::unit_y()),
-        ..Default::default()
-    };
-    // gbuffer_camera.camera.window = WindowId::new();
-    let camera_projection = &mut gbuffer_camera.perspective_projection;
-    camera_projection.update(1.0, 1.0);
-    gbuffer_camera.camera.projection_matrix = camera_projection.get_projection_matrix();
-    gbuffer_camera.camera.depth_calculation = camera_projection.depth_calculation();
-
-    commands.spawn()
-        .insert_bundle(gbuffer_camera)
-        .insert(FlyCamera::default());
+        });
+        // .insert(FlyCamera::default());
 }

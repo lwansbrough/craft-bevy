@@ -72,67 +72,74 @@ impl Node for VoxelPassNode {
 
         // let view_entity = graph.get_input_entity(Self::IN_VIEW)?;
 
-        let broadphase_pass = render_context
-            .command_encoder
-            .begin_compute_pass(&broadphase_pass_descriptor);
+        let render_texture_bind_group = voxel_volume_meta.render_texture_bind_group.as_ref().unwrap();
+
+        let command_encoder = &mut render_context.command_encoder;
+
+        {
+            let broadphase_pass = &mut command_encoder.begin_compute_pass(&broadphase_pass_descriptor);
+            
+            broadphase_pass.set_pipeline(&voxel_shaders.broadphase_pipeline);
+            broadphase_pass.set_bind_group(
+                0,
+                voxel_volume_meta
+                    .voxel_transforms_bind_group
+                    .get_value(voxel_volume_meta.voxel_transforms_bind_group_key.unwrap())
+                    .unwrap()
+                    .value(),
+                &[]
+            );
+            broadphase_pass.set_bind_group(
+                1,
+                voxel_volume_meta.raybox_intersections_bind_group
+                    .get_value(voxel_volume_meta.raybox_intersections_bind_group_key.unwrap())
+                    .unwrap()
+                    .value(),
+                &[]
+            );
+            broadphase_pass.dispatch(1000, 1000, 1);
+        }
         
-        let raytrace_pass = render_context
-            .command_encoder
-            .begin_compute_pass(&raytrace_pass_descriptor);
+        {
+            let raytrace_pass = &mut command_encoder.begin_compute_pass(&raytrace_pass_descriptor);
 
-        let rasterize_pass = render_context
-            .command_encoder
-            .begin_render_pass(&rasterize_pass_descriptor);
+            raytrace_pass.set_pipeline(&voxel_shaders.raytrace_pipeline);
+            // raytrace_pass.set_bind_group(
+            //     0,
+            //     view_meta.
+            //         .get_value(view_meta..unwrap())
+            //         .unwrap(),
+            //     &[]
+            // );
+            raytrace_pass.set_bind_group(
+                1,
+                voxel_volume_meta.raybox_intersections_bind_group
+                    .get_value(voxel_volume_meta.raybox_intersections_bind_group_key.unwrap())
+                    .unwrap()
+                    .value(),
+                &[]
+            );
 
-        broadphase_pass.set_pipeline(&voxel_shaders.broadphase_pipeline);
-        broadphase_pass.set_bind_group(
-            0,
-            voxel_volume_meta.voxel_transforms_bind_group
-                .get_value(voxel_volume_meta.voxel_transforms_bind_group_key.unwrap())
-                .unwrap(),
-            &[]
-        );
-        broadphase_pass.set_bind_group(
-            1,
-            voxel_volume_meta.raybox_intersections_bind_group
-                .get_value(voxel_volume_meta.raybox_intersections_bind_group_key.unwrap())
-                .unwrap(),
-            &[]
-        );
-        broadphase_pass.dispatch(1000, 1000, 1);
+            
+            raytrace_pass.set_bind_group(
+                2,
+                render_texture_bind_group.value(),
+                &[]
+            );
+            raytrace_pass.dispatch(1000, 1000, 1);
+        }
 
-        raytrace_pass.set_pipeline(&voxel_shaders.raytrace_pipeline);
-        // raytrace_pass.set_bind_group(
-        //     0,
-        //     view_meta.
-        //         .get_value(view_meta..unwrap())
-        //         .unwrap(),
-        //     &[]
-        // );
-        raytrace_pass.set_bind_group(
-            1,
-            voxel_volume_meta.raybox_intersections_bind_group
-                .get_value(voxel_volume_meta.raybox_intersections_bind_group_key.unwrap())
-                .unwrap(),
-            &[]
-        );
-        raytrace_pass.set_bind_group(
-            2,
-            voxel_volume_meta.render_texture_bind_group
-                .get_value(voxel_volume_meta.render_texture_bind_group_key.unwrap())
-                .unwrap(),
-            &[]
-        );
-        raytrace_pass.dispatch(1000, 1000, 1);
+        {
+            let rasterize_pass = &mut command_encoder.begin_render_pass(&rasterize_pass_descriptor);
 
-        rasterize_pass.set_pipeline(&voxel_shaders.render_pipeline);
-        rasterize_pass.set_bind_group(
-            0,
-            voxel_volume_meta.render_texture_bind_group
-                .unwrap(),
-            &[]
-        );
-        rasterize_pass.draw(0..6, 0..2);
+            rasterize_pass.set_pipeline(&voxel_shaders.render_pipeline);
+            rasterize_pass.set_bind_group(
+                0,
+                render_texture_bind_group.value(),
+                &[]
+            );
+            rasterize_pass.draw(0..6, 0..2);
+        }
 
         Ok(())
     }

@@ -21,7 +21,7 @@ pub struct SynchronizableStateAuthoring<TComponent> {
 }
 
 impl<TComponent> Command for SynchronizableStateAuthoring<TComponent> where TComponent: Synchronizable {
-    fn write(self: Box<Self>, world: &mut World) {
+    fn write(self: Self, world: &mut World) {
         // let component = world.get::<TComponent>(self.entity).unwrap();
         // let component_type_id = component.instance_type_id();
         // let serialized_state = component.author_serialized_state(world);
@@ -44,7 +44,7 @@ pub struct SynchronizableStateConsumption<TComponent> {
 }
 
 impl<TComponent> Command for SynchronizableStateConsumption<TComponent> where TComponent: Synchronizable {
-    fn write(self: Box<Self>, world: &mut World) {
+    fn write(self: Self, world: &mut World) {
 
         // if world.get_mut::<Synchronized<TComponent>>(self.entity).is_none() {
         //     return;

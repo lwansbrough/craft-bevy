@@ -129,13 +129,13 @@ impl WorldGenerator {
         let generator = Select::new(&source1, &source2, &highland_lowland_select_cache);
 
         let mut voxels = Vec::with_capacity(self.chunk_size * self.chunk_size * self.chunk_size);
-        let mut palette = vec![Vec4::zero(); 256];
-        palette[1] = Vec4::new(0.086, 0.651, 0.780, 1.0);  // Blue
-        palette[2] = Vec4::new(0.900, 0.894, 0.737, 1.0); // Yellow
-        palette[3] = Vec4::new(0.196, 0.659, 0.321, 1.0); // Green
-        palette[4] = Vec4::new(0.545, 0.271, 0.075, 1.0); // Brown
-        palette[5] = Vec4::new(0.502, 0.502, 0.502, 1.0); // Grey
-        palette[6] = Vec4::new(1.0, 0.98, 0.98, 1.0);     // White
+        let mut palette = vec![0x000000; 256];
+        palette[1] = 0x000000; // Blue
+        palette[2] = 0x000000; // Yellow
+        palette[3] = 0x000000; // Green
+        palette[4] = 0x000000; // Brown
+        palette[5] = 0x000000; // Grey
+        palette[6] = 0x000000; // White
 
         let scale = 1.0/self.chunk_size as f64;
 

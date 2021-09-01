@@ -56,7 +56,7 @@ pub fn player_focus(
         };
 
         let camera_to_model = entity_transform.compute_matrix().inverse() * camera_view_matrix.inverse();
-        let camera_ray_origin = Vec3::zero();
+        let camera_ray_origin = Vec3::ZERO;
         let model_ray_origin = (camera_to_model * Vec4::new(camera_ray_origin.x, camera_ray_origin.y, camera_ray_origin.z, 1.0)).xyz();
         let model_ray_direction = (point - model_ray_origin).normalize();
         
@@ -79,15 +79,15 @@ pub fn player_focus(
         let mut mask: BVec3;
 
         for _ in 0..MAX_RAY_STEPS {
-            if voxel.is_some() || map_pos.cmpge(voxel_volume.size).any() || map_pos.cmple(Vec3::zero()).any() {
+            if voxel.is_some() || map_pos.cmpge(voxel_volume.size).any() || map_pos.cmple(Vec3::ZERO).any() {
                 break;
             }
 
             voxel = voxel_volume.voxel(map_pos);
 
             mask = side_dist.cmple(side_dist.yzx().min(side_dist.zxy()));
-            side_dist += Vec3::select(mask, Vec3::one(), Vec3::zero()) * delta_dist;
-            map_pos += Vec3::select(mask, Vec3::one(), Vec3::zero()) * ray_step;
+            side_dist += Vec3::select(mask, Vec3::ONE, Vec3::ZERO) * delta_dist;
+            map_pos += Vec3::select(mask, Vec3::ONE, Vec3::ZERO) * ray_step;
         }
 
         if let Some(v) = voxel {
@@ -162,7 +162,7 @@ pub fn player_focus(
 // fn is_intersecting(camera: &Camera, camera_transform: &GlobalTransform, entity_transform: &GlobalTransform, volume_size: Vec3) -> (bool, Vec3) {
 //     let camera_view_matrix = camera.projection_matrix * camera_transform.compute_matrix().inverse();
 
-//     let ray_origin = Vec3::zero();
+//     let ray_origin = Vec3::ZERO;
 //     let ray_direction = camera_view_matrix.z_axis;
 
 //     let camera_to_model = entity_transform.compute_matrix().inverse() * camera_view_matrix.inverse();
@@ -191,7 +191,7 @@ pub fn player_focus(
 //     }
  
 //     if (tmin > tymax) || (tymin > tmax) {
-//         return (false, Vec3::zero());
+//         return (false, Vec3::ZERO);
 //     }
  
 //     if tymin > tmin {
@@ -210,7 +210,7 @@ pub fn player_focus(
 //     }
  
 //     if (tmin > tzmax) || (tzmin > tmax) { 
-//         return (false, Vec3::zero());
+//         return (false, Vec3::ZERO);
 //     }
  
 //     if tzmin > tmin {
@@ -227,7 +227,7 @@ pub fn player_focus(
 fn is_intersecting(camera: &Camera, camera_transform: &GlobalTransform, entity_transform: &GlobalTransform, volume_size: Vec3) -> (bool, Vec3) {
     let camera_view_matrix = camera.projection_matrix * camera_transform.compute_matrix().inverse();
 
-    let ray_origin = Vec3::zero();
+    let ray_origin = Vec3::ZERO;
     let ray_direction = camera_view_matrix.z_axis;
 
     let camera_to_model = entity_transform.compute_matrix().inverse() * camera_view_matrix.inverse();
