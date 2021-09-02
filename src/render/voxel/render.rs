@@ -7,7 +7,9 @@ pub struct VoxelShaders {
     pub render_pipeline: RenderPipeline,
     pub view_layout: BindGroupLayout,
     pub voxels_layout: BindGroupLayout,
-    pub render_texture_layout: BindGroupLayout
+    pub render_texture_compute_layout: BindGroupLayout,
+    pub render_texture_quad_layout: BindGroupLayout
+
 }
 
 impl FromWorld for VoxelShaders {
@@ -65,24 +67,31 @@ impl FromWorld for VoxelShaders {
             ]
         });
 
-        let render_texture_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: Some("Render Texture Layout"),
+        let render_texture_compute_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+            label: Some("Render Texture Compute Layout"),
             entries: &[
                 BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: ShaderStage::VERTEX_FRAGMENT,
-                    ty: BindingType::Sampler {
-                        filtering: false,
-                        comparison: false,
+                    visibility: ShaderStage::COMPUTE,
+                    ty: BindingType::StorageTexture {
+                        access: StorageTextureAccess::WriteOnly,
+                        format: TextureFormat::Rgba8Unorm,
+                        view_dimension: TextureViewDimension::D2
                     },
                     count: None
-                },
+                }
+            ]
+        });
+
+        let render_texture_quad_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+            label: Some("Render Texture Quad Layout"),
+            entries: &[
                 BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: ShaderStage::VERTEX_FRAGMENT | ShaderStage::COMPUTE,
+                    binding: 0,
+                    visibility: ShaderStage::FRAGMENT,
                     ty: BindingType::StorageTexture {
-                        access: StorageTextureAccess::ReadWrite,
-                        format: TextureFormat::Rgba8Uint,
+                        access: StorageTextureAccess::ReadOnly,
+                        format: TextureFormat::Rgba8Unorm,
                         view_dimension: TextureViewDimension::D2
                     },
                     count: None
@@ -93,19 +102,19 @@ impl FromWorld for VoxelShaders {
         let broadphase_pipeline_layout = render_device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: None,
             push_constant_ranges: &[],
-            bind_group_layouts: &[&view_layout],
+            bind_group_layouts: &[&view_layout, &voxels_layout],
         });
 
         let raytrace_pipeline_layout = render_device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: None,
             push_constant_ranges: &[],
-            bind_group_layouts: &[&view_layout, &voxels_layout, &render_texture_layout],
+            bind_group_layouts: &[&view_layout, &voxels_layout, &render_texture_compute_layout],
         });
 
         let render_pipeline_layout = render_device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: None,
             push_constant_ranges: &[],
-            bind_group_layouts: &[&render_texture_layout]
+            bind_group_layouts: &[&render_texture_quad_layout]
         });
 
         // Project rays into the scene and collect the voxel volumes each ray collides with
@@ -151,7 +160,7 @@ impl FromWorld for VoxelShaders {
                 module: &quad_shader_module,
                 entry_point: "fragment",
                 targets: &[ColorTargetState {
-                    format: TextureFormat::Rgba8Uint,
+                    format: TextureFormat::Rgba8Unorm,
                     blend: Some(BlendState {
                         color: BlendComponent {
                             src_factor: BlendFactor::SrcAlpha,
@@ -186,7 +195,8 @@ impl FromWorld for VoxelShaders {
             render_pipeline,
             view_layout,
             voxels_layout,
-            render_texture_layout
+            render_texture_compute_layout,
+            render_texture_quad_layout
         }
     }
 }
@@ -321,13 +331,15 @@ pub fn queue_voxel_volumes(
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8Uint,
-            usage: TextureUsage::SAMPLED | TextureUsage::COPY_DST,
+            format: TextureFormat::Rgba8Unorm,
+            usage: TextureUsage::STORAGE,
         });
+
         let sampler = render_device.create_sampler(&SamplerDescriptor {
             label: Some("Full Screen Quad"),
             ..Default::default()
         });
+
         let texture_view = texture.create_view(&TextureViewDescriptor::default());
         
         voxel_volume_meta.render_texture = Some(GpuImage {
@@ -344,14 +356,10 @@ pub fn queue_voxel_volumes(
                 BindGroupEntry {
                     binding: 0,
                     resource: BindingResource::TextureView(&gpu_image.texture_view),
-                },
-                BindGroupEntry {
-                    binding: 1,
-                    resource: BindingResource::Sampler(&gpu_image.sampler),
-                },
+                }
             ],
             label: None,
-            layout: &voxel_shaders.render_texture_layout,
+            layout: &voxel_shaders.render_texture_quad_layout,
         }));
     }
 }

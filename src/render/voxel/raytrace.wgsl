@@ -6,8 +6,7 @@ struct View {
 
 [[group(0), binding(0)]]
 var view: View;
-[[group(2), binding(0)]] var renderSampler: sampler;
-[[group(2), binding(1)]] var renderTexture: [[access(write)]] texture_storage_2d<rgba8unorm>;
+[[group(2), binding(0)]] var renderTexture: [[access(write)]] texture_storage_2d<rgba8unorm>;
 
 [[stage(compute), workgroup_size(64)]]
 fn raytrace([[builtin(global_invocation_id)]] global_invocation_id: vec3<u32>) {
