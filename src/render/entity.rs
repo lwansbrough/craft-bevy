@@ -1,6 +1,6 @@
-use bevy::{ecs::bundle::Bundle, math::{Vec2, Vec3}, pbr::PbrBundle, prelude::{Assets, Draw, GlobalTransform, Handle, Mesh, RenderPipelines, ResMut, StandardMaterial, Transform, shape::{self, Quad}}, render::{prelude::Visible, mesh::VertexAttributeValues, pipeline::{PrimitiveTopology, RenderPipeline}, render_graph::base::MainPass}};
+use bevy::{ecs::bundle::Bundle, math::{Vec2, Vec3}, pbr::PbrBundle, prelude::{Assets, Draw, GlobalTransform, Handle, Mesh, RenderPipelines, ResMut, StandardMaterial, Transform, shape::{self, Quad}}, render::{prelude::Visible, mesh::VertexAttributeValues, pipeline::{PrimitiveTopology, RenderPipeline}, render_graph::base::MainPass}, render2::render_phase::RenderPhase};
 
-use crate::{VOXELS_PER_METER};
+use crate::{VOXELS_PER_METER, VoxelPhase};
 use crate::render::VoxelVolume;
 
 #[derive(Bundle)]
@@ -8,6 +8,7 @@ pub struct VoxelBundle {
     pub voxel_volume: Handle<VoxelVolume>,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
+    pub phase: RenderPhase::<VoxelPhase>
 }
 
 impl VoxelBundle {
@@ -33,7 +34,8 @@ impl Default for VoxelBundle {
         Self {
             transform: Default::default(),
             global_transform: Default::default(),
-            voxel_volume: Default::default()
+            voxel_volume: Default::default(),
+            phase: RenderPhase::<VoxelPhase>::default()
         }
     }
 }

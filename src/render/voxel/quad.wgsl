@@ -1,35 +1,20 @@
 [[group(0), binding(0)]] var renderTexture: [[access(read)]] texture_storage_2d<rgba8unorm>;
 
 struct VertexOutput {
-  [[builtin(position)]] Position: vec4<f32>;
-  [[location(0)]] fragUV: vec2<f32>;
+  [[location(0)]] uv: vec2<f32>;
+  [[builtin(position)]] position: vec4<f32>;
 };
 
 [[stage(vertex)]]
-fn vertex([[builtin(vertex_index)]] VertexIndex : u32) -> VertexOutput {
-  var pos: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-      vec2<f32>( 1.0,  1.0),
-      vec2<f32>( 1.0, -1.0),
-      vec2<f32>(-1.0, -1.0),
-      vec2<f32>( 1.0,  1.0),
-      vec2<f32>(-1.0, -1.0),
-      vec2<f32>(-1.0,  1.0));
-
-  var uv: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-      vec2<f32>(1.0, 0.0),
-      vec2<f32>(1.0, 1.0),
-      vec2<f32>(0.0, 1.0),
-      vec2<f32>(1.0, 0.0),
-      vec2<f32>(0.0, 1.0),
-      vec2<f32>(0.0, 0.0));
-
-  var output : VertexOutput;
-  output.Position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);
-  output.fragUV = uv[VertexIndex];
+fn vertex([[location(0)]] vertex_index: u32) -> VertexOutput {
+  var output: VertexOutput;
+  output.uv = vec2<f32>(f32((vertex_index << 1u) & 2u), f32(vertex_index & 2u));
+  output.position = vec4<f32>(output.uv * 2.0 - 1.0, 0.0, 1.0);
   return output;
 }
 
 [[stage(fragment)]]
-fn fragment([[location(0)]] fragUV: vec2<f32>) -> [[location(0)]] vec4<f32> {
-  return textureLoad(renderTexture, vec2<i32>(i32(fragUV.x), i32(fragUV.y)));
+fn fragment(in: VertexOutput) -> [[location(0)]] vec4<f32> {
+  return vec4<f32>(in.uv, 0.0, 1.0);
+  // return textureLoad(renderTexture, vec2<i32>(i32(fragUV.x), i32(fragUV.y)));
 }

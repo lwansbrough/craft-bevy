@@ -1,5 +1,5 @@
-use bevy::{core_pipeline::Transparent3dPhase, math::Mat4, prelude::{Assets, Commands, Entity, FromWorld, GlobalTransform, Handle, Query, Res, ResMut, World}, render2::{render_graph::{Node, NodeRunError, RenderGraphContext, SlotInfo, SlotType}, render_phase::{DrawFunctions, RenderPhase, TrackedRenderPass}, render_resource::{BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingResource, BindingType, BlendComponent, BlendFactor, BlendOperation, BlendState, BufferBindingType, BufferId, BufferSize, ColorTargetState, ColorWrite, ComputePipeline, ComputePipelineDescriptor, DynamicUniformVec, Extent3d, FragmentState, FrontFace, InputStepMode, MultisampleState, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor, SamplerDescriptor, ShaderStage, StorageTextureAccess, TextureDescriptor, TextureDimension, TextureFormat, TextureUsage, TextureViewDescriptor, TextureViewDimension, VertexAttribute, VertexBufferLayout, VertexFormat, VertexState}, renderer::{RenderContext, RenderDevice}, shader::Shader, texture::{GpuImage, Image}, view::{ExtractedView, ViewMeta, ViewUniform}}, utils::{HashMap, HashSet, slab::{FrameSlabMap, FrameSlabMapKey}}};
-use crate::VoxelVolume;
+use bevy::{core::{Pod}, core_pipeline::{ClearColor, ViewDepthTexture}, math::Mat4, prelude::{Assets, Commands, Entity, FromWorld, GlobalTransform, Handle, Query, Res, ResMut, World}, render2::{camera::{CameraPlugin, ExtractedCamera, ExtractedCameraNames}, render_graph::{Node, NodeRunError, RenderGraphContext, SlotInfo, SlotType, SlotValue}, render_phase::{DrawFunctions, RenderPhase, TrackedRenderPass}, render_resource::{BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingResource, BindingType, BlendComponent, BlendFactor, BlendOperation, BlendState, BufferBindingType, BufferId, BufferSize, BufferUsage, BufferVec, ColorTargetState, ColorWrite, ComputePipeline, ComputePipelineDescriptor, DynamicUniformVec, Extent3d, FragmentState, FrontFace, InputStepMode, MultisampleState, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor, SamplerDescriptor, ShaderStage, StorageTextureAccess, TextureDescriptor, TextureDimension, TextureFormat, TextureUsage, TextureViewDescriptor, TextureViewDimension, VertexAttribute, VertexBufferLayout, VertexFormat, VertexState}, renderer::{RenderContext, RenderDevice}, shader::Shader, texture::{GpuImage, Image}, view::{ExtractedView, ExtractedWindows, ViewMeta, ViewUniform}}, utils::{HashMap, HashSet, slab::{FrameSlabMap, FrameSlabMapKey}}};
+use crate::{VoxelPhase, VoxelVolume};
 
 pub struct VoxelShaders {
     pub broadphase_pipeline: ComputePipeline,
@@ -138,19 +138,14 @@ impl FromWorld for VoxelShaders {
             layout: Some(&render_pipeline_layout),
             vertex: VertexState {
                 buffers: &[VertexBufferLayout {
-                    array_stride: 20,
+                    array_stride: 4,
                     step_mode: InputStepMode::Vertex,
                     attributes: &[
                         VertexAttribute {
-                            format: VertexFormat::Float32x3,
+                            format: VertexFormat::Uint32,
                             offset: 0,
                             shader_location: 0,
-                        },
-                        VertexAttribute {
-                            format: VertexFormat::Float32x2,
-                            offset: 12,
-                            shader_location: 1,
-                        },
+                        }
                     ],
                 }],
                 module: &quad_shader_module,
@@ -160,7 +155,7 @@ impl FromWorld for VoxelShaders {
                 module: &quad_shader_module,
                 entry_point: "fragment",
                 targets: &[ColorTargetState {
-                    format: TextureFormat::Rgba8Unorm,
+                    format: TextureFormat::Bgra8UnormSrgb,
                     blend: Some(BlendState {
                         color: BlendComponent {
                             src_factor: BlendFactor::SrcAlpha,
@@ -234,7 +229,13 @@ pub fn extract_voxel_volumes(
     });
 }
 
-#[derive(Default)]
+// #[repr(C)]
+// #[derive(Copy, Clone, Pod)]
+// struct QuadVertex {
+//     pub position: [f32; 2],
+//     pub uv: [f32; 2],
+// }
+
 pub struct VoxelVolumeMeta {
     pub transform_uniforms: DynamicUniformVec<Mat4>,
     pub voxel_transforms_bind_group: FrameSlabMap<BufferId, BindGroup>,
@@ -242,7 +243,25 @@ pub struct VoxelVolumeMeta {
     pub raybox_intersections_bind_group: FrameSlabMap<BufferId, BindGroup>,
     pub raybox_intersections_bind_group_key: Option<FrameSlabMapKey<BufferId, BindGroup>>,
     pub render_texture_bind_group: Option<BindGroup>,
-    pub render_texture: Option<GpuImage>
+    pub render_texture: Option<GpuImage>,
+    pub quad_vertices: BufferVec<u32>,
+    pub quad_indices: BufferVec<u32>
+}
+
+impl Default for VoxelVolumeMeta {
+    fn default() -> Self {
+        Self {
+            quad_vertices: BufferVec::new(BufferUsage::VERTEX),
+            quad_indices: BufferVec::new(BufferUsage::INDEX),
+            transform_uniforms: DynamicUniformVec::<Mat4>::default(),
+            voxel_transforms_bind_group: FrameSlabMap::<BufferId, BindGroup>::default(),
+            voxel_transforms_bind_group_key: None,
+            raybox_intersections_bind_group: FrameSlabMap::<BufferId, BindGroup>::default(),
+            raybox_intersections_bind_group_key: None,
+            render_texture_bind_group: None,
+            render_texture: None,
+        }
+    }
 }
 
 pub fn prepare_voxel_volumes(
@@ -263,18 +282,110 @@ pub fn prepare_voxel_volumes(
         .write_to_staging_buffer(&render_device);
 }
 
+pub fn prepare_render_texture(
+    mut commands: Commands,
+    render_device: Res<RenderDevice>,
+    voxel_shaders: Res<VoxelShaders>,
+    mut voxel_volume_meta: ResMut<VoxelVolumeMeta>,
+) {
+    if voxel_volume_meta.render_texture.is_none() {
+        let texture = render_device.create_texture(&TextureDescriptor {
+            label: Some("Full Screen Quad"),
+            size: Extent3d {
+                height: 1000,
+                width: 1000,
+                depth_or_array_layers: 1
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Rgba8Unorm,
+            usage: TextureUsage::STORAGE,
+        });
+
+        let sampler = render_device.create_sampler(&SamplerDescriptor {
+            label: Some("Full Screen Quad"),
+            ..Default::default()
+        });
+
+        let texture_view = texture.create_view(&TextureViewDescriptor {
+            format: Some(TextureFormat::Rgba8Unorm),
+            ..Default::default()
+        });
+        
+        voxel_volume_meta.render_texture = Some(GpuImage {
+            texture,
+            texture_view,
+            sampler,
+        });
+    }
+
+    if voxel_volume_meta.render_texture_bind_group.is_none() {
+        let gpu_image = voxel_volume_meta.render_texture.as_ref().unwrap();
+        voxel_volume_meta.render_texture_bind_group = Some(render_device.create_bind_group(&BindGroupDescriptor {
+            entries: &[
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::TextureView(&gpu_image.texture_view),
+                }
+            ],
+            label: None,
+            layout: &voxel_shaders.render_texture_quad_layout,
+        }));
+    }
+
+    voxel_volume_meta.quad_vertices.reserve_and_clear(3, &render_device);
+    voxel_volume_meta.quad_indices.reserve_and_clear(3, &render_device);
+
+    // voxel_volume_meta.quad_vertices.push(QuadVertex {
+    //     position: [1.0, 1.0],
+    //     uv: [1.0, 0.0]
+    // });
+    // voxel_volume_meta.quad_vertices.push(QuadVertex {
+    //     position: [1.0, -1.0],
+    //     uv: [1.0, 1.0]
+    // });
+    // voxel_volume_meta.quad_vertices.push(QuadVertex {
+    //     position: [-1.0, -1.0],
+    //     uv: [0.0, 1.0]
+    // });
+    // voxel_volume_meta.quad_vertices.push(QuadVertex {
+    //     position: [1.0, 1.0],
+    //     uv: [1.0, 0.0]
+    // });
+    // voxel_volume_meta.quad_vertices.push(QuadVertex {
+    //     position: [-1.0, -1.0],
+    //     uv: [0.0, 1.0]
+    // });
+    // voxel_volume_meta.quad_vertices.push(QuadVertex {
+    //     position: [-1.0, 1.0],
+    //     uv: [0.0, 0.0]
+    // });
+
+    voxel_volume_meta.quad_vertices.push(0);
+    voxel_volume_meta.quad_vertices.push(1);
+    voxel_volume_meta.quad_vertices.push(2);
+
+    voxel_volume_meta.quad_indices.push(0);
+    voxel_volume_meta.quad_indices.push(1);
+    voxel_volume_meta.quad_indices.push(2);
+
+    voxel_volume_meta.quad_vertices.write_to_staging_buffer(&render_device);
+    voxel_volume_meta.quad_indices.write_to_staging_buffer(&render_device);
+}
+
 pub fn queue_voxel_volumes(
     mut commands: Commands,
     raw_functions: Res<DrawFunctions>,
     render_device: Res<RenderDevice>,
     voxel_shaders: Res<VoxelShaders>,
-    voxel_volume_meta: ResMut<VoxelVolumeMeta>,
+    mut voxel_volume_meta: ResMut<VoxelVolumeMeta>,
     view_meta: Res<ViewMeta>,
     mut extracted_voxel_volumes: ResMut<ExtractedVoxelVolumes>,
     mut views: Query<(
         Entity,
         &ExtractedView,
-        &mut RenderPhase<Transparent3dPhase>,
+        &mut RenderPhase<VoxelPhase>,
     )>,
 ) {
     let voxel_volume_meta = voxel_volume_meta.into_inner();
@@ -320,48 +431,7 @@ pub fn queue_voxel_volumes(
             },
         ));
 
-    if voxel_volume_meta.render_texture.is_none() {
-        let texture = render_device.create_texture(&TextureDescriptor {
-            label: Some("Full Screen Quad"),
-            size: Extent3d {
-                height: 1000,
-                width: 1000,
-                depth_or_array_layers: 1
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8Unorm,
-            usage: TextureUsage::STORAGE,
-        });
-
-        let sampler = render_device.create_sampler(&SamplerDescriptor {
-            label: Some("Full Screen Quad"),
-            ..Default::default()
-        });
-
-        let texture_view = texture.create_view(&TextureViewDescriptor::default());
-        
-        voxel_volume_meta.render_texture = Some(GpuImage {
-            texture,
-            texture_view,
-            sampler,
-        });
-    }
-
-    if voxel_volume_meta.render_texture_bind_group.is_none() {
-        let gpu_image = voxel_volume_meta.render_texture.as_ref().unwrap();
-        voxel_volume_meta.render_texture_bind_group = Some(render_device.create_bind_group(&BindGroupDescriptor {
-            entries: &[
-                BindGroupEntry {
-                    binding: 0,
-                    resource: BindingResource::TextureView(&gpu_image.texture_view),
-                }
-            ],
-            label: None,
-            layout: &voxel_shaders.render_texture_quad_layout,
-        }));
-    }
+    
 }
 
 pub struct VoxelVolumeNode;
@@ -369,11 +439,27 @@ pub struct VoxelVolumeNode;
 impl Node for VoxelVolumeNode {
     fn run(
         &self,
-        _graph: &mut RenderGraphContext,
+        graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
         world: &World
     ) -> Result<(), NodeRunError> {
+        let extracted_cameras = world.get_resource::<ExtractedCameraNames>().unwrap();
+        let extracted_windows = world.get_resource::<ExtractedWindows>().unwrap();
+
+        if let Some(camera_3d) = extracted_cameras.entities.get(CameraPlugin::CAMERA_3D) {
+            let extracted_camera = world.entity(*camera_3d).get::<ExtractedCamera>().unwrap();
+            let extracted_window = extracted_windows.get(&extracted_camera.window_id).unwrap();
+            let swap_chain_texture = extracted_window.swap_chain_frame.as_ref().unwrap().clone();
+            
+            graph.run_sub_graph(
+                crate::draw_voxels_graph::NAME,
+                vec![
+                    SlotValue::Entity(*camera_3d),
+                    SlotValue::TextureView(swap_chain_texture),
+                ],
+            )?;
+        }
+
         Ok(())
     }
 }
-

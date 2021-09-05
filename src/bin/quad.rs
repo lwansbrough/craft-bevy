@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::time::Duration;
 
 use bevy::{PipelinedDefaultPlugins, prelude::*};
-use bevy::{prelude::*, render::{camera::{Camera, CameraProjection}, mesh::Indices, pipeline::PrimitiveTopology, renderer::RenderResourceBinding}, window::WindowId};
+use bevy::{render::{camera::{Camera, CameraProjection}, mesh::Indices, pipeline::PrimitiveTopology, renderer::RenderResourceBinding}, window::WindowId};
 use bevy::{render::renderer::{RenderResourceContext, RenderResourceBindings, BufferUsage, BufferInfo}, app::{ScheduleRunnerSettings}};
 use bevy_rapier3d::physics::{RapierPhysicsPlugin, RigidBodyHandleComponent};
 use bevy_rapier3d::rapier::dynamics::{BodyStatus, RigidBody, RigidBodyBuilder};
@@ -37,36 +37,65 @@ fn main() {
         .add_plugin(VoxelRenderPlugin)
         // .add_plugin(FlyCameraPlugin)
         .add_asset::<VoxelVolume>()
-        .insert_resource(WorldGenerator::new(32))
-        .insert_resource(WorldData::new())
+        // .insert_resource(WorldGenerator::new(32))
+        // .insert_resource(WorldData::new())
         // .add_system_to_stage(
         //     stage::POST_UPDATE, // We want this system to run after ray casting has been computed
         //     player_focus.system(), // Update the debug cursor location
         // )
         .add_startup_system(setup.system())
         .add_system(window_resolution_system.system())
-        .add_startup_system(chunk_loading_system.system())
+        // .add_startup_system(chunk_loading_system.system())
         .run();
 }
 
 /// set up a simple 3D scene
 fn setup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials_standard: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<bevy::render2::mesh::Mesh>>,
+    mut materials_standard: ResMut<Assets<bevy::pbr2::StandardMaterial>>,
     mut voxel_volumes: ResMut<Assets<VoxelVolume>>,
-) {    
+) {
     commands
         .spawn()
-        .insert_bundle(PbrBundle {
-            material: materials_standard.add(bevy::render::color::Color::GREEN.into()),
-            transform: Transform::from_translation(Vec3::new(-3.0, 0.0, 0.0)),
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+        .insert_bundle(VoxelBundle {
+            transform: Transform {
+                translation: Vec3::ZERO,
+                rotation: Quat::IDENTITY,
+                scale: Vec3::ONE
+            },
             ..Default::default()
-        })
-        .insert(LocalPlayerBody {})
-        .insert_bundle(PerspectiveCameraBundle {
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 12.0)),
+        });
+
+    commands
+        .spawn()
+        // .insert_bundle(VoxelBundle {
+        //     transform: Transform {
+        //         translation: Vec3::ZERO,
+        //         rotation: Quat::IDENTITY,
+        //         scale: Vec3::ONE
+        //     },
+        //     ..Default::default()
+        // })
+        // .insert(LocalPlayerBody {})
+        .insert_bundle(bevy::pbr2::PbrBundle {
+            mesh: meshes.add(bevy::render2::mesh::Mesh::from(bevy::render2::mesh::shape::Cube { size: 3.0 })),
+            transform: Transform::from_translation(Vec3::ZERO),
+            material: materials_standard.add(bevy::pbr2::StandardMaterial {
+                base_color: bevy::render2::color::Color::PINK,
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
+    
+    commands
+        .spawn()
+        .insert_bundle(bevy::render2::camera::PerspectiveCameraBundle {
+            transform: {
+                let transform = Transform::from_translation(Vec3::new(4.0, 3.0, 12.0));
+                transform.looking_at(Vec3::ZERO, Vec3::Y);
+                transform
+            },
             ..Default::default()
         });
         // .insert(FlyCamera::default());
