@@ -59,6 +59,7 @@ fn setup(
     commands
         .spawn()
         .insert_bundle(VoxelBundle {
+            voxel_volume: voxel_volumes.add(VoxelVolume),
             transform: Transform {
                 translation: Vec3::ZERO,
                 rotation: Quat::IDENTITY,

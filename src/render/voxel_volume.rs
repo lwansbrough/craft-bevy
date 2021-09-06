@@ -1,13 +1,13 @@
 use std::ops::DerefMut;
 
 use serde::{Serialize, Deserialize};
-use bevy::{core::{FromBytes}, prelude::*, reflect::TypeUuid, render::{renderer::{BufferInfo, BufferUsage, RenderResource, RenderResourceBinding, RenderResourceContext, RenderResourceId, RenderResources}}, utils::{HashMap, HashSet}};
+use bevy::{core::{FromBytes}, prelude::*, reflect::TypeUuid, render::{renderer::{BufferInfo, RenderResource, RenderResourceBinding, RenderResourceContext, RenderResourceId, RenderResources}}, render2::{render_asset::{RenderAsset, RenderAssetPlugin}, render_resource::{Buffer, BufferInitDescriptor, BufferUsage}, renderer::{RenderDevice, RenderQueue}}, utils::{HashMap, HashSet}};
 
 // use crate::Octree;
 
 pub const VOXELS_PER_METER: f32 = 16.0;
 
-#[derive(Debug, TypeUuid, Serialize)]
+#[derive(Debug, TypeUuid, Clone)]
 #[uuid = "9c15ff5b-12ae-4f62-a489-c3a71ebda138"]
 pub struct VoxelVolume {
     pub palette: Vec<u32>,
@@ -111,7 +111,7 @@ impl Default for VoxelVolume {
     }
 }
 
-#[derive(Debug, Copy, Clone, Serialize)]
+#[derive(Debug, Copy, Clone)]
 pub struct VoxelData {
     pub material: u32,
 }
@@ -124,144 +124,70 @@ impl Default for VoxelData {
     }
 }
 
-pub const VOXEL_VOLUME_BUFFER_ID: u64 = 0;
+pub struct VoxelVolumePlugin;
 
-fn remove_resource_save(
-    render_resource_context: &dyn RenderResourceContext,
-    handle: &Handle<VoxelVolume>,
-    index: u64,
-) {
-    if let Some(RenderResourceId::Buffer(buffer)) =
-        render_resource_context.get_asset_resource(&handle, index)
-    {
-        render_resource_context.remove_buffer(buffer);
-        render_resource_context.remove_asset_resource(handle, index);
+impl Plugin for VoxelVolumePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugin(RenderAssetPlugin::<VoxelVolume>::default())
+            .add_asset::<VoxelVolume>();
     }
 }
-fn remove_current_voxel_resources(
-    render_resource_context: &dyn RenderResourceContext,
-    handle: &Handle<VoxelVolume>,
-) {
-    remove_resource_save(render_resource_context, handle, VOXEL_VOLUME_BUFFER_ID);
+
+
+#[derive(Debug, Clone)]
+pub struct GpuVoxelVolume {
+    pub buffer: Buffer,
 }
 
-#[derive(Default)]
-pub struct VoxelEntities {
-    entities: HashSet<Entity>,
-}
+impl RenderAsset for VoxelVolume {
+    type ExtractedAsset = VoxelVolume;
+    type PreparedAsset = GpuVoxelVolume;
 
-#[derive(Default)]
-pub struct VoxelResourceProviderState {
-    voxel_entities: HashMap<Handle<VoxelVolume>, VoxelEntities>,
-}
+    fn extract_asset(&self) -> Self::ExtractedAsset {
+        self.clone()
+    }
 
-pub fn voxel_resource_provider_system(
-    mut state: Local<VoxelResourceProviderState>,
-    render_resource_context: Res<Box<dyn RenderResourceContext>>,
-    voxel_volumes: Res<Assets<VoxelVolume>>,
-    mut voxel_events: EventReader<AssetEvent<VoxelVolume>>,
-    mut queries: QuerySet<(
-        Query<&mut RenderPipelines, With<Handle<VoxelVolume>>>,
-        Query<(Entity, &Handle<VoxelVolume>, &mut RenderPipelines), Changed<Handle<VoxelVolume>>>,
-    )>,
-) {
-    let mut changed_voxel_volumes = HashSet::default();
-    let render_resource_context = &**render_resource_context;
-    for event in voxel_events.iter() {
-        match event {
-            AssetEvent::Created { ref handle } => {
-                changed_voxel_volumes.insert(handle.clone_weak());
-            }
-            AssetEvent::Modified { ref handle } => {
-                changed_voxel_volumes.insert(handle.clone_weak());
-                remove_current_voxel_resources(render_resource_context, handle);
-            }
-            AssetEvent::Removed { ref handle } => {
-                remove_current_voxel_resources(render_resource_context, handle);
-                // if voxel volume was modified and removed in the same update, ignore the modification
-                // events are ordered so future modification events are ok
-                changed_voxel_volumes.remove(handle);
-            }
+    fn prepare_asset(
+        material: Self::ExtractedAsset,
+        render_device: &RenderDevice,
+        _render_queue: &RenderQueue,
+    ) -> Self::PreparedAsset {
+        let mut flags = StandardMaterialFlags::NONE;
+        if material.base_color_texture.is_some() {
+            flags |= StandardMaterialFlags::BASE_COLOR_TEXTURE;
+        }
+        if material.emissive_texture.is_some() {
+            flags |= StandardMaterialFlags::EMISSIVE_TEXTURE;
+        }
+        if material.metallic_roughness_texture.is_some() {
+            flags |= StandardMaterialFlags::METALLIC_ROUGHNESS_TEXTURE;
+        }
+        if material.occlusion_texture.is_some() {
+            flags |= StandardMaterialFlags::OCCLUSION_TEXTURE;
+        }
+        if material.double_sided {
+            flags |= StandardMaterialFlags::DOUBLE_SIDED;
+        }
+        if material.unlit {
+            flags |= StandardMaterialFlags::UNLIT;
+        }
+        let value = StandardMaterialUniformData {
+            base_color: material.base_color.as_rgba_linear().into(),
+            emissive: material.emissive.into(),
+            roughness: material.perceptual_roughness,
+            metallic: material.metallic,
+            reflectance: material.reflectance,
+            flags: flags.bits,
+        };
+        let value_std140 = value.as_std140();
+
+        let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: None,
+            usage: BufferUsage::UNIFORM | BufferUsage::COPY_DST,
+            contents: value_std140.as_bytes(),
+        });
+        GpuVoxelVolume {
+            buffer,
         }
     }
-
-    // update changed voxel data
-    for changed_voxel_volume_handle in changed_voxel_volumes.iter() {
-        if let Some(voxel_volume) = voxel_volumes.get(changed_voxel_volume_handle) {
-            // TODO: check for individual buffer changes in non-interleaved mode
-            // let data = voxel_volume.data.as_bytes();
-            let data: [u8; 0] = [];
-                
-            let voxel_buffer = render_resource_context.create_buffer_with_data(
-                BufferInfo {
-                    buffer_usage: BufferUsage::STORAGE,
-                    ..Default::default()
-                },
-                &data,
-            );
-
-            render_resource_context.set_asset_resource(
-                changed_voxel_volume_handle,
-                RenderResourceId::Buffer(voxel_buffer),
-                VOXEL_VOLUME_BUFFER_ID,
-            );
-            
-            if let Some(voxel_entities) = state.voxel_entities.get_mut(changed_voxel_volume_handle) {
-                for entity in voxel_entities.entities.iter() {
-                    if let Ok(render_pipelines) = queries.q0_mut().get_mut(*entity) {
-                        update_entity_voxel_volume(
-                            render_resource_context,
-                            voxel_volume,
-                            changed_voxel_volume_handle,
-                            render_pipelines,
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    // handover buffers to pipeline
-    for (entity, handle, render_pipelines) in queries.q1_mut().iter_mut() {
-        let voxel_entities = state
-            .voxel_entities
-            .entry(handle.clone_weak())
-            .or_insert_with(VoxelEntities::default);
-            voxel_entities.entities.insert(entity);
-        if let Some(voxel_volume) = voxel_volumes.get(handle) {
-            update_entity_voxel_volume(render_resource_context, voxel_volume, handle, render_pipelines);
-        }
-    }
-}
-
-
-fn update_entity_voxel_volume(
-    render_resource_context: &dyn RenderResourceContext,
-    voxel_volume: &VoxelVolume,
-    handle: &Handle<VoxelVolume>,
-    mut render_pipelines: Mut<RenderPipelines>,
-) {
-    // // for render_pipeline in render_pipelines.pipelines.iter_mut() {
-    // //     render_pipeline.specialization.primitive_topology = voxel_volume.primitive_topology;
-    // //     // TODO: don't allocate a new vertex buffer descriptor for every entity
-    // //     render_pipeline.specialization.vertex_buffer_descriptor =
-    // //     voxel_volume.get_vertex_buffer_descriptor();
-    // //     render_pipeline.specialization.index_format = voxel_volume
-    // //         .indices()
-    // //         .map(|i| i.into())
-    // //         .unwrap_or(IndexFormat::Uint32);
-    // // }
-
-    // if let Some(RenderResourceId::Buffer(voxel_volume_buffer_resource)) =
-    //     render_resource_context.get_asset_resource(handle, VOXEL_VOLUME_BUFFER_ID)
-    // {
-    //     render_pipelines.bindings.set(
-    //         super::super::storage::VOXEL_VOLUME,
-    //         RenderResourceBinding::Buffer {
-    //             buffer: voxel_volume_buffer_resource,
-    //             range: 0..voxel_volume.data.as_bytes().len() as u64,
-    //             dynamic_index: None,
-    //         },
-    //     );
-    // }
 }

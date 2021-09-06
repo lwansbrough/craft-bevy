@@ -41,12 +41,12 @@ impl Node for VoxelPassNode {
         let voxel_volume_meta = world.get_resource::<VoxelVolumeMeta>().unwrap();
         let color_attachment_texture = graph.get_input_texture(Self::IN_COLOR_ATTACHMENT)?;
         
-        // let broadphase_pass_descriptor = ComputePassDescriptor {
-        //     label: Some("voxel_pass_broadphase"),
-        // };
-        // let raytrace_pass_descriptor = ComputePassDescriptor {
-        //     label: Some("voxel_pass_raytrace"),
-        // };
+        let broadphase_pass_descriptor = ComputePassDescriptor {
+            label: Some("voxel_pass_broadphase"),
+        };
+        let raytrace_pass_descriptor = ComputePassDescriptor {
+            label: Some("voxel_pass_raytrace"),
+        };
         let rasterize_pass_descriptor = RenderPassDescriptor {
             label: Some("voxel_pass_render"),
             color_attachments: &[RenderPassColorAttachment {
@@ -66,63 +66,60 @@ impl Node for VoxelPassNode {
 
         let command_encoder = &mut render_context.command_encoder;
 
-        // {
-        //     let broadphase_pass = &mut command_encoder.begin_compute_pass(&broadphase_pass_descriptor);
+        if voxel_volume_meta.voxel_transforms_bind_group_key.is_some() {
+            let broadphase_pass = &mut command_encoder.begin_compute_pass(&broadphase_pass_descriptor);
             
-        //     broadphase_pass.set_pipeline(&voxel_shaders.broadphase_pipeline);
-        //     broadphase_pass.set_bind_group(
-        //         0,
-        //         voxel_volume_meta
-        //             .voxel_transforms_bind_group
-        //             .get_value(voxel_volume_meta.voxel_transforms_bind_group_key.unwrap())
-        //             .unwrap()
-        //             .value(),
-        //         &[]
-        //     );
-        //     broadphase_pass.set_bind_group(
-        //         1,
-        //         voxel_volume_meta.raybox_intersections_bind_group
-        //             .get_value(voxel_volume_meta.raybox_intersections_bind_group_key.unwrap())
-        //             .unwrap()
-        //             .value(),
-        //         &[]
-        //     );
-        //     broadphase_pass.dispatch(1000, 1000, 1);
-        // }
+            broadphase_pass.set_pipeline(&voxel_shaders.broadphase_pipeline);
+            broadphase_pass.set_bind_group(
+                0,
+                voxel_volume_meta
+                    .voxel_transforms_bind_group
+                    .get_value(voxel_volume_meta.voxel_transforms_bind_group_key.unwrap())
+                    .unwrap()
+                    .value(),
+                &[]
+            );
+            broadphase_pass.set_bind_group(
+                1,
+                voxel_volume_meta.raybox_intersections_bind_group
+                    .get_value(voxel_volume_meta.raybox_intersections_bind_group_key.unwrap())
+                    .unwrap()
+                    .value(),
+                &[]
+            );
+            broadphase_pass.dispatch(1000, 1000, 1);
+        }
         
-        // {
-        //     let raytrace_pass = &mut command_encoder.begin_compute_pass(&raytrace_pass_descriptor);
+        if voxel_volume_meta.raybox_intersections_bind_group_key.is_some() {
+            let raytrace_pass = &mut command_encoder.begin_compute_pass(&raytrace_pass_descriptor);
 
-        //     raytrace_pass.set_pipeline(&voxel_shaders.raytrace_pipeline);
-        //     // raytrace_pass.set_bind_group(
-        //     //     0,
-        //     //     view_meta.
-        //     //         .get_value(view_meta..unwrap())
-        //     //         .unwrap(),
-        //     //     &[]
-        //     // );
-        //     raytrace_pass.set_bind_group(
-        //         1,
-        //         voxel_volume_meta.raybox_intersections_bind_group
-        //             .get_value(voxel_volume_meta.raybox_intersections_bind_group_key.unwrap())
-        //             .unwrap()
-        //             .value(),
-        //         &[]
-        //     );
+            raytrace_pass.set_pipeline(&voxel_shaders.raytrace_pipeline);
+            // raytrace_pass.set_bind_group(
+            //     0,
+            //     view_meta.
+            //         .get_value(view_meta..unwrap())
+            //         .unwrap(),
+            //     &[]
+            // );
+            raytrace_pass.set_bind_group(
+                1,
+                voxel_volume_meta.raybox_intersections_bind_group
+                    .get_value(voxel_volume_meta.raybox_intersections_bind_group_key.unwrap())
+                    .unwrap()
+                    .value(),
+                &[]
+            );
 
             
-        //     raytrace_pass.set_bind_group(
-        //         2,
-        //         render_texture_bind_group.value(),
-        //         &[]
-        //     );
-        //     raytrace_pass.dispatch(1000, 1000, 1);
-        // }
+            raytrace_pass.set_bind_group(
+                2,
+                render_texture_bind_group.value(),
+                &[]
+            );
+            raytrace_pass.dispatch(1000, 1000, 1);
+        }
 
         {
-            voxel_volume_meta.quad_vertices.write_to_buffer(command_encoder);
-            voxel_volume_meta.quad_indices.write_to_buffer(command_encoder);
-
             let rasterize_pass = &mut command_encoder.begin_render_pass(&rasterize_pass_descriptor);
             rasterize_pass.set_pipeline(&voxel_shaders.render_pipeline);
             rasterize_pass.set_vertex_buffer(0, *voxel_volume_meta.quad_vertices.buffer().unwrap().slice(..));

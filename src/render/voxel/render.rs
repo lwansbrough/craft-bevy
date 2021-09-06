@@ -229,13 +229,6 @@ pub fn extract_voxel_volumes(
     });
 }
 
-// #[repr(C)]
-// #[derive(Copy, Clone, Pod)]
-// struct QuadVertex {
-//     pub position: [f32; 2],
-//     pub uv: [f32; 2],
-// }
-
 pub struct VoxelVolumeMeta {
     pub transform_uniforms: DynamicUniformVec<Mat4>,
     pub voxel_transforms_bind_group: FrameSlabMap<BufferId, BindGroup>,
@@ -337,31 +330,6 @@ pub fn prepare_render_texture(
     voxel_volume_meta.quad_vertices.reserve_and_clear(3, &render_device);
     voxel_volume_meta.quad_indices.reserve_and_clear(3, &render_device);
 
-    // voxel_volume_meta.quad_vertices.push(QuadVertex {
-    //     position: [1.0, 1.0],
-    //     uv: [1.0, 0.0]
-    // });
-    // voxel_volume_meta.quad_vertices.push(QuadVertex {
-    //     position: [1.0, -1.0],
-    //     uv: [1.0, 1.0]
-    // });
-    // voxel_volume_meta.quad_vertices.push(QuadVertex {
-    //     position: [-1.0, -1.0],
-    //     uv: [0.0, 1.0]
-    // });
-    // voxel_volume_meta.quad_vertices.push(QuadVertex {
-    //     position: [1.0, 1.0],
-    //     uv: [1.0, 0.0]
-    // });
-    // voxel_volume_meta.quad_vertices.push(QuadVertex {
-    //     position: [-1.0, -1.0],
-    //     uv: [0.0, 1.0]
-    // });
-    // voxel_volume_meta.quad_vertices.push(QuadVertex {
-    //     position: [-1.0, 1.0],
-    //     uv: [0.0, 0.0]
-    // });
-
     voxel_volume_meta.quad_vertices.push(0);
     voxel_volume_meta.quad_vertices.push(1);
     voxel_volume_meta.quad_vertices.push(2);
@@ -390,9 +358,9 @@ pub fn queue_voxel_volumes(
 ) {
     let voxel_volume_meta = voxel_volume_meta.into_inner();
 
-    if view_meta.uniforms.is_empty() {
-        return;
-    }
+    // if view_meta.uniforms.is_empty() {
+    //     return;
+    // }
 
     if extracted_voxel_volumes.voxel_volumes.is_empty() {
         return;
@@ -445,6 +413,13 @@ impl Node for VoxelVolumeNode {
     ) -> Result<(), NodeRunError> {
         let extracted_cameras = world.get_resource::<ExtractedCameraNames>().unwrap();
         let extracted_windows = world.get_resource::<ExtractedWindows>().unwrap();
+        let voxel_volume_meta = world.get_resource::<VoxelVolumeMeta>().unwrap();
+
+        let command_encoder = &mut render_context.command_encoder;
+
+        voxel_volume_meta.quad_vertices.write_to_buffer(command_encoder);
+        voxel_volume_meta.quad_indices.write_to_buffer(command_encoder);
+        voxel_volume_meta.transform_uniforms.write_to_uniform_buffer(command_encoder);
 
         if let Some(camera_3d) = extracted_cameras.entities.get(CameraPlugin::CAMERA_3D) {
             let extracted_camera = world.entity(*camera_3d).get::<ExtractedCamera>().unwrap();
